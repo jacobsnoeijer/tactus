@@ -28,6 +28,7 @@ class TactusPluginRegistry:
             config = {}
         self.config_input = config
         self.config = self.get_registry_config()
+        self.discover_local_plugins()
         self.plugins: List[TactusPlugin] = []
         self.tactus_plugin()
         self.load_plugins()
@@ -88,6 +89,33 @@ class TactusPluginRegistry:
         if "plugins" not in config:
             config.update({"plugins": {}})
         return config
+
+    def discover_local_plugins(self):
+        """Discover Tactus plugins under the process launch directory.
+
+        A plugin namespace directory contains a `tasks` and/or `suites`
+        subdirectory. The configured path is the parent of that namespace,
+        as expected by :class:`TactusPlugin`.
+        """
+        plugin_root = Path.cwd().resolve()
+        plugins = self.config["plugins"]
+
+        for namespace_dir in plugin_root.iterdir():
+            if not namespace_dir.is_dir():
+                continue
+
+            name = namespace_dir.name.lower()
+            if name == "tactus" or not name.isidentifier():
+                continue
+
+            has_tasks = (namespace_dir / "tasks").is_dir()
+            has_suites = (namespace_dir / "suites").is_dir()
+            if not (has_tasks or has_suites):
+                continue
+
+            # Keep explicit configuration; only add missing namespaces.
+            plugins.setdefault(name, str(plugin_root))
+
 
     def save_registry(self, config_file):
         """Save registry config.
