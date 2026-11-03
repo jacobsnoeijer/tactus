@@ -9,7 +9,8 @@ import tomlkit
 from toml_formatter.formatter import FormattedToml
 from toml_formatter.formatter_options import FormatterOptions
 
-from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_schema import get_main_config_json_schema
 from tactus.derived_variables import set_times
 from tactus.experiment import case_setup
 from tactus.toolbox import Platform
@@ -50,7 +51,7 @@ def test_save_config(tmp_directory: Path, default_config):
     config = default_config
     config.save_as(saved_config)
     config = ParsedConfig.from_file(
-        saved_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+        saved_config, json_schema=get_main_config_json_schema()
     )
 
 
@@ -91,7 +92,7 @@ def test_set_domain_from_file(
         expand_config=True,
     )
     config = ParsedConfig.from_file(
-        output_file, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+        output_file, json_schema=get_main_config_json_schema()
     )
     assert config["domain.name"] == "TEST_DOMAIN"
     assert config["domain.name"] == test_domain["name"]
@@ -107,7 +108,7 @@ def test_set_case_name(default_config, default_config_dir):
 
     case_setup(default_config, output_file, [], case=case)
     config = ParsedConfig.from_file(
-        output_file, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+        output_file, json_schema=get_main_config_json_schema()
     )
     assert config["general.case"] == case
     os.remove(output_file)
@@ -144,7 +145,5 @@ def test_write_read_config(default_config, default_config_dir):
     ):
         file_needs_formatting = True
     assert not file_needs_formatting
-    ParsedConfig.from_file(
-        output_file, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-    )
+    ParsedConfig.from_file(output_file, json_schema=get_main_config_json_schema())
     os.remove(output_file)

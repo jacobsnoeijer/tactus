@@ -24,7 +24,9 @@ from tactus.config_parser import (
     ConflictingValidationSchemasError,
     JsonSchema,
     ParsedConfig,
+    _get_all_json_schemas,
 )
+from tactus.config_schema import ConfigSchemaDefaults, get_main_config_json_schema
 from tactus.datetime_utils import DatetimeConstants, as_datetime
 from tactus.derived_variables import set_times
 from tactus.general_utils import recursive_unfreeze
@@ -34,6 +36,7 @@ from tactus.general_utils import recursive_unfreeze
 def minimal_raw_config():
     return tomlkit.parse("""
         [general]
+            case = "test_case"
             times.list = ["2000-01-01T00:00:00Z"]
         """)
 
@@ -75,16 +78,14 @@ def raw_config_with_non_recognised_options(minimal_raw_config):
 
 @pytest.fixture
 def minimal_parsed_config(minimal_raw_config):
-    return ParsedConfig(
-        minimal_raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-    )
+    return ParsedConfig(minimal_raw_config, json_schema=get_main_config_json_schema())
 
 
 @pytest.fixture
 def parsed_config_with_task(raw_config_with_task):
     return ParsedConfig(
         raw_config_with_task,
-        json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+        json_schema=get_main_config_json_schema(),
     )
 
 
@@ -332,7 +333,7 @@ class TestGeneralBehaviour:
         with pytest.raises(
             ConfigFileValidationError, match=re.escape("must contain ['general']")
         ):
-            config.json_schema = ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+            config.json_schema = get_main_config_json_schema()
 
     def test_config_model_can_be_printed(self):
         parsed_config = ParsedConfig({}, json_schema={})
@@ -364,7 +365,7 @@ class TestGeneralBehaviour:
     ):
         raw_config = raw_config_with_non_recognised_options.copy()
         parsed_config = ParsedConfig(
-            raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+            raw_config, json_schema=get_main_config_json_schema()
         )
         extra_section = parsed_config["unrecognised_section_name"]
         assert extra_section
@@ -380,7 +381,7 @@ class TestGeneralBehaviour:
     def test_config_get_value(self, raw_config_with_non_recognised_options):
         config = ParsedConfig(
             raw_config_with_non_recognised_options,
-            json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+            json_schema=get_main_config_json_schema(),
         )
         assert config["general.times.cycle_length"] == "PT3H"
 
@@ -394,14 +395,14 @@ class TestGeneralBehaviour:
     def test_config_can_be_printed(self, raw_config_with_non_recognised_options):
         config = ParsedConfig(
             raw_config_with_non_recognised_options,
-            json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+            json_schema=get_main_config_json_schema(),
         )
         _ = str(config)
 
     def test_config_section_can_be_printed(self, raw_config_with_non_recognised_options):
         config = ParsedConfig(
             raw_config_with_non_recognised_options,
-            json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+            json_schema=get_main_config_json_schema(),
         )
         section_dumps = config.dumps(section="general")
         expected_section_dumps = BasicConfig(general=config["general"]).dumps()
@@ -416,7 +417,7 @@ class TestGeneralBehaviour:
         toml_dumps = minimal_parsed_config.dumps(style="toml")
         reloaded_parsed_config = ParsedConfig(
             tomlkit.loads(toml_dumps),
-            json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+            json_schema=get_main_config_json_schema(),
         )
         new_toml_dumps = reloaded_parsed_config.dumps(style="toml")
         assert new_toml_dumps == toml_dumps
@@ -458,7 +459,7 @@ class TestGeneralBehaviour:
 
     def test_parsed_config_registers_file_metadata_when_read_from_file(self, config_path):
         config = ParsedConfig.from_file(
-            config_path, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+            config_path, json_schema=get_main_config_json_schema()
         )
         config_source_file_path = config.metadata["source_file_path"]
         assert isinstance(config_source_file_path, Path)
@@ -484,7 +485,7 @@ class TestGeneralBehaviour:
         raw_config = minimal_raw_config.copy()
         raw_config["general"].update({"case": "foo"})
         parsed_config = ParsedConfig(
-            raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+            raw_config, json_schema=get_main_config_json_schema()
         )
 
         original_value = parsed_config["general.times"]
@@ -549,7 +550,7 @@ class TestValidators:
     def test_validator_works_with_input_datetime(self, dt_input, minimal_raw_config):
         minimal_raw_config["general"]["times"]["list"] = [dt_input]
         parsed_config = ParsedConfig(
-            minimal_raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+            minimal_raw_config, json_schema=get_main_config_json_schema()
         )
         validated_value = parsed_config["general.times.list"][0]
         assert isinstance(validated_value, str)
@@ -563,7 +564,7 @@ class TestValidators:
         ):
             _ = ParsedConfig(
                 minimal_raw_config,
-                json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+                json_schema=get_main_config_json_schema(),
             )
 
     @pytest.mark.parametrize(
@@ -603,9 +604,7 @@ class TestValidators:
         with pytest.raises(
             ConfigFileValidationError, match="must be valid exactly by one definition"
         ):
-            _ = ParsedConfig(
-                raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-            )
+            _ = ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
 
 
 class TestPossibilityOfISO8601ComplianceEnforcement:
@@ -667,7 +666,7 @@ def raw_config_with_include_section(minimal_raw_config, valid_config_include_sec
 def parsed_config_with_included_sections(raw_config_with_include_section):
     return ParsedConfig(
         raw_config_with_include_section,
-        json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+        json_schema=get_main_config_json_schema(),
     )
 
 
@@ -695,7 +694,7 @@ class TestConfigIncludeSection:
         raw_config["include"].update({"foo_section": "include/macros.toml"})
 
         with open(
-            ConfigParserDefaults.SCHEMAS_DIRECTORY / "default_section_schema.json", "r"
+            ConfigSchemaDefaults.SCHEMAS_DIRECTORY / "default_section_schema.json", "r"
         ) as schema_file:
             schema = json.load(schema_file)
 
@@ -789,6 +788,16 @@ def competing_schemas(tmp_test_data_dir):
     return dir_high, dir_low
 
 
+def test_schema_search_paths_only_discover_section_schemas(tmp_path):
+    (tmp_path / "project_schema.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "project_section_schema.json").write_text("{}", encoding="utf-8")
+
+    json_schema = _get_all_json_schemas({"properties": {}}, [tmp_path])
+
+    assert "project" in json_schema["properties"]
+    assert "project_schema" not in json_schema["properties"]
+
+
 class TestSchemasSearchPaths:
     """Tests for multi-path JSON schema search (ConfigPaths.SCHEMAS_SEARCHPATHS)."""
 
@@ -822,7 +831,7 @@ class TestSchemasSearchPaths:
         assert isinstance(ConfigPaths.SCHEMAS_SEARCHPATHS, list)
 
     def test_tactus_schemas_directory_in_searchpaths(self):
-        assert ConfigParserDefaults.SCHEMAS_DIRECTORY in ConfigPaths.SCHEMAS_SEARCHPATHS
+        assert ConfigSchemaDefaults.SCHEMAS_DIRECTORY in ConfigPaths.SCHEMAS_SEARCHPATHS
 
     def test_schemas_dir_can_be_prepended_to_searchpaths(self, plugin_schemas_dir):
         original_length = len(ConfigPaths.SCHEMAS_SEARCHPATHS)
@@ -838,25 +847,19 @@ class TestSchemasSearchPaths:
         raw_config["plugin"] = {"plugin_key": "hello"}
 
         # Without extra dir: plugin has no strict schema, so any content is allowed.
-        config = ParsedConfig(
-            raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-        )
+        config = ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
         assert "plugin" in config
 
         ConfigPaths.SCHEMAS_SEARCHPATHS.insert(0, plugin_schemas_dir)
 
         # With extra dir: strict schema is enforced - valid data passes.
-        config = ParsedConfig(
-            raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-        )
+        config = ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
         assert config["plugin.plugin_key"] == "hello"
 
         # With extra dir: data that violates the strict schema is rejected.
         raw_config["plugin"] = {"wrong_key": "oops"}
         with pytest.raises(ConfigFileValidationError):
-            ParsedConfig(
-                raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-            )
+            ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
 
     def test_schema_from_extra_dir_validates_include_section(
         self, plugin_schemas_dir, minimal_raw_config, tmp_test_data_dir
@@ -870,17 +873,13 @@ class TestSchemasSearchPaths:
 
         # Valid include file: passes strict schema from extra dir.
         include_file.write_text('[plugin]\nplugin_key = "hello"\n')
-        config = ParsedConfig(
-            raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-        )
+        config = ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
         assert config["plugin.plugin_key"] == "hello"
 
         # Include file that violates the strict schema raises.
         include_file.write_text('[plugin]\nwrong_key = "oops"\n')
         with pytest.raises(ConfigFileValidationError):
-            ParsedConfig(
-                raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-            )
+            ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
 
     def test_first_searchpath_wins_for_include_section(
         self, competing_schemas, minimal_raw_config, tmp_test_data_dir
@@ -898,9 +897,7 @@ class TestSchemasSearchPaths:
         # dir_high at index 0 -> its schema is applied -> config with 'from_high' is valid.
         ConfigPaths.SCHEMAS_SEARCHPATHS.insert(0, dir_low)
         ConfigPaths.SCHEMAS_SEARCHPATHS.insert(0, dir_high)
-        config = ParsedConfig(
-            raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-        )
+        config = ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
         assert "competing" in config
 
     def test_first_searchpath_wins_for_section_without_includes(
@@ -916,9 +913,7 @@ class TestSchemasSearchPaths:
         # dir_high at index 0 -> its schema is applied -> config with 'from_high' is valid.
         ConfigPaths.SCHEMAS_SEARCHPATHS.insert(0, dir_low)
         ConfigPaths.SCHEMAS_SEARCHPATHS.insert(0, dir_high)
-        config = ParsedConfig(
-            raw_config, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-        )
+        config = ParsedConfig(raw_config, json_schema=get_main_config_json_schema())
         assert "competing" in config
 
     def test_backward_compatible_with_single_path_as_schemas_path(
@@ -930,6 +925,6 @@ class TestSchemasSearchPaths:
         result_config, _ = _expand_config_include_section(
             raw_config=dict(minimal_raw_config),
             json_schema={},
-            schemas_path=ConfigParserDefaults.SCHEMAS_DIRECTORY,
+            schemas_path=ConfigSchemaDefaults.SCHEMAS_DIRECTORY,
         )
         assert result_config is not None

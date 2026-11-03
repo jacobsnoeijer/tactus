@@ -56,7 +56,7 @@ class Task(object):
         self.name = name
         self.fmanager = FileManager(self.config)
         self.platform = self.fmanager.platform
-        self.wrapper = self.config["submission.task.wrapper"]
+        self.wrapper = self.config.get("submission.task.wrapper")
         self.wrk = self.platform.get_system_value("wrk")
         if self.wrk is None:
             raise ValueError("You must set wrk", self.wrk)
@@ -272,7 +272,7 @@ class Task(object):
         """
         logger.debug("Base class post")
         # Clean workdir
-        if self.config["general.keep_workdirs"]:
+        if self.config.get("general.keep_workdirs", True):
             self.rename_wdir(prefix="Finished_task_", source=source, target=target)
         else:
             self.remove_wdir(wdir=source)

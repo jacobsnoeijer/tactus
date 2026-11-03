@@ -1,0 +1,147 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Minimal Tactus configuration",
+  "description": "Minimum main configuration for projects using Tactus task execution and ecFlow/Troika. Stack this with project-specific schemas.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "general": {
+      "$ref": "#/definitions/general"
+    },
+    "suite_control": {
+      "$ref": "#/definitions/suite_control"
+    },
+    "troika": {
+      "$ref": "#/definitions/troika"
+    },
+    "include": {
+      "$ref": "#/definitions/include"
+    },
+    "system": {
+      "$ref": "#/definitions/system"
+    }
+  },
+  "required": [
+    "general"
+  ],
+  "definitions": {
+    "include": {
+      "title": "Include Section",
+      "description": "Sections to be included from other configuration files.",
+      "type": "object",
+      "properties": {}
+    },
+    "general": {
+      "title": "General settings",
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "case": {
+          "type": "string",
+          "description": "Name of the ecFlow suite",
+          "pattern": "^([a-zA-Z0-9_@][a-zA-Z0-9_@]*)?$"
+        },
+        "plugin_registry": {
+          "type": "object",
+          "properties": {
+            "plugins": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "plugins"
+          ],
+          "additionalProperties": true
+        },
+        "keep_workdirs": {
+          "type": "boolean",
+          "description": "Keep task working directories after execution"
+        },
+        "loglevel": {
+          "type": "string",
+          "enum": [
+            "CRITICAL",
+            "ERROR",
+            "DEBUG",
+            "INFO",
+            "WARNING"
+          ]
+        },
+        "times": {
+          "type": "object",
+          "description": "Optional cycle-time settings",
+          "additionalProperties": true,
+          "properties": {
+            "start": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "end": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "basetime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "validtime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "required": [
+        "case"
+      ]
+    },
+    "suite_control": {
+      "title": "Suite control",
+      "type": "object",
+      "properties": {
+        "suite_definition": {
+          "type": "string",
+          "description": "Name of the project suite definition class."
+        }
+      },
+      "additionalProperties": true
+    },
+    "troika": {
+      "title": "Troika",
+      "type": "object",
+      "properties": {
+        "troika": {
+          "type": "string",
+          "description": "Troika command."
+        },
+        "config_file": {
+          "type": "string",
+          "description": "Path to the Troika configuration file."
+        }
+      },
+      "additionalProperties": true
+    },
+    "system": {
+      "title": "System settings",
+      "type": "object",
+      "properties": {
+        "wrk": {
+          "type": "string",
+          "description": "Location of the task working directory."
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

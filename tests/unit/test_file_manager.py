@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 import tomlkit
 
-from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_schema import get_main_config_json_schema
 from tactus.logs import logger
 from tactus.toolbox import FileManager
 
@@ -49,7 +50,7 @@ def config_platform(tmp_directory):
 def parsed_config_with_paths(config_platform):
     return ParsedConfig(
         config_platform,
-        json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+        json_schema=get_main_config_json_schema(),
     )
 
 

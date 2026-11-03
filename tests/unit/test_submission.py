@@ -8,6 +8,7 @@ import pytest
 import tomlkit
 
 from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_schema import get_main_config_json_schema
 from tactus.derived_variables import derived_variables, set_times
 from tactus.submission import NoSchedulerSubmission, ProcessorLayout, TaskSettings
 
@@ -17,6 +18,7 @@ def minimal_raw_config():
     return tomlkit.parse(
         """
         [general]
+            case = "test_case"
             times.list = ["2000-01-01T00:00:00Z"]
         [system]
             wrk = "/tmp/@YYYY@@MM@@DD@_@HH@"
@@ -33,9 +35,7 @@ def raw_config_with_task(minimal_raw_config):
 
 @pytest.fixture
 def parsed_config_with_task(raw_config_with_task):
-    return ParsedConfig(
-        raw_config_with_task, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-    )
+    return ParsedConfig(raw_config_with_task, json_schema=get_main_config_json_schema())
 
 
 @pytest.fixture

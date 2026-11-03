@@ -17,7 +17,8 @@ from troika.connections.ssh import SSHConnection
 
 from . import GeneralConstants
 from .cleaning import CleanTactus
-from .config_parser import BasicConfig, ConfigParserDefaults, ConfigPaths, ParsedConfig
+from .config_parser import BasicConfig, ConfigPaths, ParsedConfig
+from .config_schema import get_config_schema_paths, get_main_config_json_schema
 from .derived_variables import check_fullpos_namelist, derived_variables, set_times
 from .eps.eps_setup import EPSConfig, get_member_config
 from .experiment import case_setup
@@ -148,9 +149,12 @@ def create_exp(args, config):
     )
 
     if args.start_suite:
+        schema_paths = get_config_schema_paths(config)
+        ConfigPaths.add_schema_paths(schema_paths)
         config = ParsedConfig.from_file(
-            output_file, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
+            output_file, json_schema=get_main_config_json_schema(schema_paths)
         )
+        config.metadata["schema_files"] = [str(path) for path in schema_paths]
         args.start_command = None
         args.config_file = output_file
         args.def_file = ""

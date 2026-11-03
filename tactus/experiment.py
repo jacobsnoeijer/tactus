@@ -13,10 +13,10 @@ import tomlkit
 
 from tactus.config_parser import (
     BasicConfig,
-    ConfigParserDefaults,
     ConfigPaths,
     ParsedConfig,
 )
+from tactus.config_schema import get_config_schema_paths, get_main_config_json_schema
 from tactus.datetime_utils import evaluate_date
 from tactus.derived_variables import set_times
 from tactus.eps.eps_setup import EPSConfig, generate_member_settings
@@ -381,9 +381,10 @@ def case_setup(
         logger.info("Save config to: {}", output_file)
 
     # Validate the new config
+    schema_paths = get_config_schema_paths(config)
     ParsedConfig(
         Platform(exp.config).resolve_macros(exp.config.dict()),
-        json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+        json_schema=get_main_config_json_schema(schema_paths),
     )
     # Record when the run started
     exp.config = exp.config.copy(

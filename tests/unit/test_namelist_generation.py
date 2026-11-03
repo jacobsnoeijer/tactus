@@ -9,7 +9,8 @@ import pytest
 import tomli
 import tomlkit
 
-from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_schema import get_main_config_json_schema
 from tactus.namelist import (
     InvalidNamelistTargetError,
     NamelistGenerator,
@@ -58,9 +59,7 @@ def config_platform():
 
 @pytest.fixture
 def parsed_config(config_platform):
-    return ParsedConfig(
-        config_platform, json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA
-    )
+    return ParsedConfig(config_platform, json_schema=get_main_config_json_schema())
 
 
 @pytest.fixture(params=["pgd", "prep", "forecast"])

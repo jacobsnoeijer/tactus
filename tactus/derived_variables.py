@@ -24,6 +24,8 @@ def set_times(config):
         update (dict): Dict of corrected basetime/validtime
     """
     times = config.get_as_dict("general.times")
+    if times is None:
+        return {}
 
     if "start" in times:
         times.update({"start": evaluate_date(times["start"])})

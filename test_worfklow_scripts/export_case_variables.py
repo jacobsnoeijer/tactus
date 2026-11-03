@@ -9,7 +9,8 @@ and prepares export bash commnad, which is printed as a string output
 
 import sys
 
-from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_schema import get_main_config_json_schema
 from tactus.derived_variables import set_times
 from tactus.host_actions import SelectHost, TactusHost
 from tactus.toolbox import Platform
@@ -20,7 +21,7 @@ tactus_host = TactusHost().detect_tactus_host()
 
 config = ParsedConfig.from_file(
     config_file,
-    json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+    json_schema=get_main_config_json_schema(),
     host=tactus_host,
 )
 

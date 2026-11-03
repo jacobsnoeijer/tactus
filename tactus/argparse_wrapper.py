@@ -34,7 +34,7 @@ def get_common_parser(config_file_required=False):
         config_file_required (bool): Whether the config file argument is required.
 
     Returns:
-        argparse.ArgumentParser: Parser with common arguments (config-file,
+        argparse.ArgumentParser: Parser with common arguments (config-file, schema,
             host-file, etc.).
 
     """
@@ -44,6 +44,18 @@ def get_common_parser(config_file_required=False):
         "--tactus-home",
         default=None,
         help="Specify tactus_home to override automatic detection",
+    )
+    common_parser.add_argument(
+        "--schema",
+        metavar="SCHEMA_FILE_PATH",
+        nargs="+",
+        action="extend",
+        type=Path,
+        default=None,
+        help=(
+            "JSON schema file(s) used to validate the config. Multiple files are "
+            "merged in the order given."
+        ),
     )
     if config_file_required:
         common_parser.add_argument(

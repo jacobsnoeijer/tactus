@@ -8,6 +8,7 @@ import pytest
 
 from tactus import GeneralConstants
 from tactus.config_parser import BasicConfig, ConfigParserDefaults, ParsedConfig
+from tactus.config_schema import get_main_config_json_schema
 from tactus.host_actions import TactusHost
 from tactus.logs import logger
 from tactus.scheduler import EcflowServer
@@ -68,7 +69,7 @@ class TestScheduler:
         tactus_host = TactusHost().detect_tactus_host()
         task_config = ParsedConfig(
             config,
-            json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+            json_schema=get_main_config_json_schema(),
             host=tactus_host,
         )
 

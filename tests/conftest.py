@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_schema import get_main_config_json_schema
 from tactus.host_actions import TactusHost
 
 
@@ -149,7 +150,7 @@ def default_config(tmp_directory):
 
     config = ParsedConfig.from_file(
         ConfigParserDefaults.PACKAGE_CONFIG_PATH,
-        json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+        json_schema=get_main_config_json_schema(),
         host=tactus_host,
     )
     if tactus_host == "pytest":

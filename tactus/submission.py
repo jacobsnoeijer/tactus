@@ -1,13 +1,16 @@
 """Module to handle submissions."""
 
 import collections.abc
+import json
 import os
+import shlex
 import subprocess
 import sys
 from pathlib import Path
 from typing import Optional
 
 from tactus.config_parser import ParsedConfig
+from tactus.config_schema import get_config_schema_paths
 from tactus.derived_variables import derived_variables
 from tactus.logs import logger
 from tactus.os_utils import tactusmakedirs
@@ -337,6 +340,7 @@ class TaskSettings(object):
                     "NPROCX",
                     "NPROCY",
                     "CONFIG",
+                    "SCHEMAS",
                     "TACTUS_HOME",
                     "KEEP_WORKDIRS",
                     "MEMBER",
@@ -403,6 +407,9 @@ class TaskSettings(object):
                 config_file = config.metadata["source_file_path"]
 
                 file_handler.write(f'export STAND_ALONE_TASK_CONFIG="{config_file!s}"\n')
+                schema_paths = [str(path) for path in get_config_schema_paths(config)]
+                schemas = shlex.quote(json.dumps(schema_paths))
+                file_handler.write(f"export STAND_ALONE_SCHEMAS={schemas}\n")
                 if member is not None:
                     file_handler.write(f"export STAND_ALONE_MEMBER={member}\n")
 

@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import List, Optional, Union
 
+from ..config_schema import get_config_schema_paths
 from ..datetime_utils import as_datetime
 from ..logs import LogDefaults, logger
 from ..submission import TaskSettings
@@ -134,9 +135,9 @@ class SuiteDefinition(object):
         config_file = config.metadata["source_file_path"]
         tactus_home = platform.get_platform_value("TACTUS_HOME")
 
-        keep_workdirs = "1" if config["general.keep_workdirs"] else "0"
+        keep_workdirs = "1" if config.get("general.keep_workdirs", True) else "0"
         loglevel = config.get("general.loglevel", LogDefaults.LEVEL).upper()
-        starttime = config.get("general.times.start")
+        starttime = config.get("general.times.start") or ""
         variables = {
             "ECF_USER": self.ecf_user,
             "ECFTYPES": "fc",
@@ -157,6 +158,9 @@ class SuiteDefinition(object):
             "FP_PRECISION": "",
             "LOGLEVEL": loglevel,
             "CONFIG": str(config_file),
+            "SCHEMAS": os.pathsep.join(
+                str(path) for path in get_config_schema_paths(config)
+            ),
             "TROIKA": troika,
             "TROIKA_CONFIG": troika_config,
             "BASETIME": starttime,

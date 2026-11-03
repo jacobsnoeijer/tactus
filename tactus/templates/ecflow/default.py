@@ -7,7 +7,11 @@ try:
 except ModuleNotFoundError:
     ecf = None
 
-from tactus.config_parser import ConfigParserDefaults, GeneralConstants, ParsedConfig
+from tactus.config_parser import ConfigPaths, GeneralConstants, ParsedConfig
+from tactus.config_schema import (
+    get_main_config_json_schema,
+    get_main_config_schema_paths,
+)
 from tactus.derived_variables import derived_variables
 from tactus.eps.eps_setup import get_member_config
 from tactus.host_actions import TactusHost
@@ -57,6 +61,7 @@ def parse_ecflow_vars():
         "NPROCX": os.environ["NPROCX"],
         "NPROCY": os.environ["NPROCY"],
         "CONFIG": os.environ["CONFIG"],
+        "SCHEMAS": os.environ.get("SCHEMAS", ""),
         "TACTUS_HOME": os.environ["TACTUS_HOME"],
         "KEEP_WORKDIRS": os.environ["KEEP_WORKDIRS"],
         "MEMBER": os.environ["MEMBER"],
@@ -67,12 +72,15 @@ def parse_ecflow_vars():
 def default_main(kwargs: dict):
     """Ecflow container default method."""
     config_file = kwargs.get("CONFIG")
+    schema_paths = get_main_config_schema_paths(kwargs.get("SCHEMAS") or None)
+    ConfigPaths.add_schema_paths(schema_paths)
     tactus_host = TactusHost().detect_tactus_host()
     config = ParsedConfig.from_file(
         config_file,
-        json_schema=ConfigParserDefaults.MAIN_CONFIG_JSON_SCHEMA,
+        json_schema=get_main_config_json_schema(schema_paths),
         host=tactus_host,
     )
+    config.metadata["schema_files"] = [str(path) for path in schema_paths]
 
     # Reset loglevel according to (in order of priority):
     #     (a) Configs in ECFLOW UI
@@ -129,7 +137,7 @@ def default_main(kwargs: dict):
     # If member is not an integer, skip EPS setup
     try:
         member = int(member)
-    except (TypeError, ValueError):
+    except (KeyError, TypeError, ValueError):
         logger.debug("MEMBER is not an integer, skipping eps setup for task {}", task)
         config = config.copy(update={"task": {"args": {"use_member_stand_alone": False}}})
     else:
@@ -151,8 +159,9 @@ def default_main(kwargs: dict):
     # This will also handle call to sys.exit(), i.e. Client.__exit__ will still be called.
     with EcflowClient(server, task):
         processor_layout = ProcessorLayout(kwargs)
-        update = derived_variables(config, processor_layout=processor_layout)
-        config = config.copy(update=update)
+        if config.get("domain.nbzonl") is not None:
+            update = derived_variables(config, processor_layout=processor_layout)
+            config = config.copy(update=update)
 
         # TODO Add wrapper to config
         logger.info("Running task {}", task.ecf_name)

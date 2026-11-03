@@ -28,6 +28,7 @@ from toml_formatter.formatter import FormattedToml
 
 from . import GeneralConstants
 from .aux_types import BaseMapping, QuasiConstant
+from .config_schema import ConfigSchemaDefaults
 from .datetime_utils import DatetimeConstants
 from .formatters import duration_format_validator, duration_slice_format_validator
 from .general_utils import recursive_unfreeze
@@ -50,10 +51,6 @@ class ConfigParserDefaults(QuasiConstant):
         CONFIG_PATH = CONFIG_PATH.resolve(strict=True)
     except FileNotFoundError:
         CONFIG_PATH = PACKAGE_CONFIG_PATH
-
-    SCHEMAS_DIRECTORY = CONFIG_DIRECTORY / "config_file_schemas"
-    MAIN_CONFIG_JSON_SCHEMA_PATH = SCHEMAS_DIRECTORY / "main_config_schema.json"
-    MAIN_CONFIG_JSON_SCHEMA = json.loads(MAIN_CONFIG_JSON_SCHEMA_PATH.read_text())
 
 
 class ConfigPaths:
@@ -81,7 +78,17 @@ class ConfigPaths:
         raise RuntimeError(
             f"TACTUS_SCHEMAS_DIR is not absolute: {erroneous_schema_paths}"
         )
-    SCHEMAS_SEARCHPATHS.append(ConfigParserDefaults.SCHEMAS_DIRECTORY)
+    SCHEMAS_SEARCHPATHS.append(ConfigSchemaDefaults.SCHEMAS_DIRECTORY)
+
+    @classmethod
+    def add_schema_paths(cls, schema_files):
+        """Add directories containing selected schemas to the search path."""
+        searchpaths = [Path(path).resolve() for path in cls.SCHEMAS_SEARCHPATHS]
+        for schema_file in schema_files:
+            schema_path = Path(schema_file).resolve().parent
+            if schema_path not in searchpaths:
+                cls.SCHEMAS_SEARCHPATHS.insert(0, str(schema_path))
+                searchpaths.insert(0, schema_path)
 
     @staticmethod
     def print(config_file=None, host=None):
@@ -589,16 +596,21 @@ def _get_all_json_schemas(json_schema, schemas_paths):
         json_schema (dict): Updated json dict
 
     """
-    exclude = ["main_config_schema.json", "default_config_schema.json"]
+    exclude = [
+        "main_config_schema.json",
+        "minimal_main_config_schema.json",
+        "default_config_schema.json",
+    ]
     # Revert schema_paths list to make first path win, since it then occurs last
     # in below iteration.
     schemas_paths = schemas_paths[::-1]
 
     for schemas_path in schemas_paths:
         for filename in glob.glob(f"{schemas_path}/*.json"):
-            if os.path.basename(filename) in exclude:
+            basename = os.path.basename(filename)
+            if basename in exclude or not basename.endswith("_section_schema.json"):
                 continue
-            section_name = os.path.basename(filename).replace("_section_schema.json", "")
+            section_name = basename.replace("_section_schema.json", "")
             updated_schema = {"$ref": f"file:{filename}"}
             json_schema["properties"].update({section_name: updated_schema})
 
