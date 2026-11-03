@@ -392,7 +392,8 @@ class Platform:
         for key, val in datetime_substitution_map.items():
             ci = key not in ["MM", "mm", "ss"]
             _key = key + suffix
-            pattern = self.sub_value(pattern, _key, datetime.strftime(val), ci=ci)
+            with contextlib.suppress(AttributeError):
+                pattern = self.sub_value(pattern, _key, datetime.strftime(val), ci=ci)
 
         return pattern
 
@@ -558,9 +559,9 @@ class Platform:
             basetime = self.config.get("general.times.basetime", None)
         if validtime is None:
             validtime = self.config.get("general.times.validtime", None)
-        if isinstance(basetime, str):
+        if isinstance(basetime, str) and basetime:
             basetime = as_datetime(basetime)
-        if isinstance(validtime, str):
+        if isinstance(validtime, str) and validtime:
             validtime = as_datetime(validtime)
 
         if basetime is not None:
