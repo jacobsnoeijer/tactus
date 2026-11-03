@@ -57,6 +57,8 @@ def _task_index_file(config):
 
     """
     task_index_file_path = Platform(config).get_system_value("casedir")
+    if task_index_file_path is None:
+        return None
     return Path(task_index_file_path) / "tasks_index.json"
 
 
@@ -72,12 +74,15 @@ def load_task_index(config):
     """
     task_index_file = _task_index_file(config)
 
-    if os.path.isfile(task_index_file):
+    if task_index_file is not None and os.path.isfile(task_index_file):
         logger.info("Read task index from {}", task_index_file)
         with open(task_index_file, "r", encoding="utf-8") as infile:
             known_types = json.load(infile)
     else:
-        logger.info("Create task index file {}", task_index_file)
+        if task_index_file is None:
+            logger.info("Discover tasks without a persistent task index")
+        else:
+            logger.info("Create task index file {}", task_index_file)
         known_types = create_task_index(config)
 
     return known_types
@@ -99,6 +104,9 @@ def create_task_index(config):
     known_types = {
         k: f"{v.__module__}.{v.__qualname__}" for k, v in available_tasks(reg).items()
     }
+
+    if task_index_file is None:
+        return known_types
 
     task_index_file_dir = os.path.dirname(task_index_file)
     unix_group = config.get("platform.unix_group")
