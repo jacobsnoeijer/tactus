@@ -170,7 +170,7 @@ class Platform:
         """Fill the macros."""
         self.macros = {}
 
-        for macro in self.config.get("macros.select", []):
+        for macro in self.config["macros.select"]:
             self.fill_each_macro(f"macros.select.{macro}")
 
     def get_system_macros(self):
@@ -189,7 +189,7 @@ class Platform:
             dict: Environment macros to be used.
 
         """
-        return self.config.get("macros.os_macros", [])
+        return self.config["macros.os_macros"]
 
     def get_gen_macros(self):
         """Get the environment macros.
@@ -198,7 +198,7 @@ class Platform:
             dict: Environment macros to be used.
 
         """
-        return self.config.get("macros.gen_macros", {})
+        return self.config["macros.gen_macros"]
 
     def store_macro(self, key, val):
         """Check and store a macro.

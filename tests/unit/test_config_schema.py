@@ -5,9 +5,7 @@ from pathlib import Path
 
 from tactus.argparse_wrapper import get_args_parser
 from tactus.config_schema import (
-    ConfigSchemaDefaults,
     get_main_config_json_schema,
-    get_main_config_schema_paths,
 )
 
 

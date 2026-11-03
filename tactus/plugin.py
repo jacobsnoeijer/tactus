@@ -116,7 +116,6 @@ class TactusPluginRegistry:
             # Keep explicit configuration; only add missing namespaces.
             plugins.setdefault(name, str(plugin_root))
 
-
     def save_registry(self, config_file):
         """Save registry config.
 

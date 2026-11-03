@@ -18,7 +18,7 @@ class ConfigSchemaDefaults(QuasiConstant):
     )
     MINIMAL_CONFIG_JSON_SCHEMA_PATH = SCHEMAS_DIRECTORY / "minimal_config_schema.json"
     NWP_CONFIG_JSON_SCHEMA_PATH = SCHEMAS_DIRECTORY / "nwp_config_schema.json"
-    
+
     TACTUS_MAIN_CONFIG_JSON_SCHEMA_PATHS = (
         MINIMAL_CONFIG_JSON_SCHEMA_PATH,
         NWP_CONFIG_JSON_SCHEMA_PATH,
