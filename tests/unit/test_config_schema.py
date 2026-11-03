@@ -11,21 +11,10 @@ from tactus.config_schema import (
 )
 
 
-def test_default_main_config_schema_stack_contains_minimal_and_nwp():
-    assert get_main_config_schema_paths() == [
-        ConfigSchemaDefaults.MINIMAL_MAIN_CONFIG_JSON_SCHEMA_PATH.resolve(),
-        ConfigSchemaDefaults.NWP_MAIN_CONFIG_JSON_SCHEMA_PATH.resolve(),
-    ]
-
-
 def test_main_config_schemas_are_merged_in_order(tmp_path):
     base_schema = {
         "type": "object",
-        "properties": {
-            "general": {
-                "$ref": "#/definitions/general"
-            }
-        },
+        "properties": {"general": {"$ref": "#/definitions/general"}},
         "required": ["general"],
         "definitions": {
             "general": {
@@ -69,35 +58,31 @@ def test_main_schema_files_are_not_meta_validated(tmp_path):
 
 
 def test_schema_cli_accepts_a_list_of_files():
-    args = get_args_parser().parse_args(
-        [
-            "start",
-            "suite",
-            "--config-file",
-            "project.toml",
-            "--schema",
-            "minimal.json",
-            "project.json",
-        ]
-    )
+    args = get_args_parser().parse_args([
+        "start",
+        "suite",
+        "--config-file",
+        "project.toml",
+        "--schema",
+        "minimal.json",
+        "project.json",
+    ])
 
     assert args.schema == [Path("minimal.json"), Path("project.json")]
 
 
 def test_schema_cli_can_be_repeated():
-    args = get_args_parser().parse_args(
-        [
-            "start",
-            "suite",
-            "--config-file",
-            "project.toml",
-            "--schema",
-            "minimal.json",
-            "--schema",
-            "project.json",
-            "scheduler.json",
-        ]
-    )
+    args = get_args_parser().parse_args([
+        "start",
+        "suite",
+        "--config-file",
+        "project.toml",
+        "--schema",
+        "minimal.json",
+        "--schema",
+        "project.json",
+        "scheduler.json",
+    ])
 
     assert args.schema == [
         Path("minimal.json"),

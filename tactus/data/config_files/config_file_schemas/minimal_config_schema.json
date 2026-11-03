@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Minimal Tactus configuration",
+  "description": "Minimal main configuration for using tactus task execution and ecFlow/Troika. Stack this with more specific schemas.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "general": {
+      "$ref": "#/definitions/general"
+    },
+    "suite_control": {
+      "$ref": "#/definitions/suite_control"
+    },
+    "system": {
+      "$ref": "#/definitions/system"
+    },
+    "troika": {
+      "$ref": "#/definitions/troika"
+    },
+    "include": {
+      "$ref": "#/definitions/include"
+    },
+    "genesis": {
+      "$ref": "#/definitions/genesis"
+    }
+  },
+  "required": [
+    "general"
+  ],
+  "definitions": {
+    "include": {
+      "title": "Include Section",
+      "description": "Sections to be included from other config files. Specified as 'key = val' pairs, where the keys are the section names and the vals are the paths to the files containing them.",
+      "type": "object",
+      "properties": {}
+    },
+    "troika": {
+      "title": "Troika",
+      "description": "TACTUS system specific troika settings",
+      "type": "object",
+      "properties": {
+        "config_file": {
+          "type": "string",
+          "description": "Troika config file",
+          "default": "@TACTUS_HOME@/data/config_files/troika.yml"
+        },
+        "troika": {
+          "type": "string",
+          "description": "Troika command, allows to specify troika with full path",
+          "default": "troika"
+        }
+      }
+    },
+    "plugin_registry": {
+      "title": "Plug-in registry",
+      "type": "object",
+      "properties": {
+        "plugins": {
+          "title": "Loaded plugins",
+          "type": "object"
+        }
+      }
+    },
+    "general": {
+      "title": "General Section",
+      "description": "Model for the 'general' section.",
+      "type": "object",
+      "properties": {
+        "case": {
+          "description": "Experiment name",
+          "default": "tactus_case",
+          "type": "string",
+          "pattern": "^([a-zA-Z0-9_@][a-zA-Z0-9_@]*)?$"
+        },
+        "keep_workdirs": {
+          "description": "Do not remove working directories",
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "suite_control": {
+      "title": "Suite control",
+      "description": "Suite control options",
+      "type": "object",
+      "properties": {
+        "suite_definition": {
+          "description": "Suite definition to play in EcFlow",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "system": {
+      "title": "System",
+      "description": "TACTUS system specific path settings",
+      "type": "object",
+      "properties": {
+        "sys_name": {
+          "type": "string",
+          "description": "System/package name (typically matching PACKAGE_NAME) used when resolving paths.",
+          "default": "tactus"
+        },
+        "casedir": {
+          "type": "string",
+          "description": "Case specific working directory",
+          "default": "@SCRATCH@/@SYS_NAME@/@CASE@"
+        },
+        "wrk": {
+          "type": "string",
+          "description": "Location of date specific working directory",
+          "default": "@CASEDIR@"
+        },
+        "logs": {
+          "type": "string",
+          "description": "Location of collected logfiles"
+        }
+      },
+      "additionalProperties": true
+    },
+    "genesis": {
+      "title": "Genesis information",
+      "description": "Genesis information of the configuration file",
+      "type": "object",
+      "properties": {
+        "command": {
+          "description": "The command used to generate the configuration file",
+          "type": "string"
+        },
+        "package": {
+          "description": "The package used to generate the configuration file",
+          "type": "string"
+        },
+        "version": {
+          "description": "The version of the package used to generate the configuration file",
+          "type": "string"
+        },
+        "user": {
+          "description": "The user who generated the configuration file",
+          "type": "string"
+        },
+        "time": {
+          "description": "The time when the configuration file was generated",
+          "type": "string"
+        }
+      }
+    }
+  }
+}

@@ -16,20 +16,19 @@ class ConfigSchemaDefaults(QuasiConstant):
     SCHEMAS_DIRECTORY = (
         GeneralConstants.PACKAGE_DIRECTORY / "data/config_files/config_file_schemas"
     )
-    MINIMAL_MAIN_CONFIG_JSON_SCHEMA_PATH = (
-        SCHEMAS_DIRECTORY / "minimal_main_config_schema.json"
-    )
-    NWP_MAIN_CONFIG_JSON_SCHEMA_PATH = SCHEMAS_DIRECTORY / "main_config_schema.json"
-    DEFAULT_MAIN_CONFIG_JSON_SCHEMA_PATHS = (
-        MINIMAL_MAIN_CONFIG_JSON_SCHEMA_PATH,
-        NWP_MAIN_CONFIG_JSON_SCHEMA_PATH,
+    MINIMAL_CONFIG_JSON_SCHEMA_PATH = SCHEMAS_DIRECTORY / "minimal_config_schema.json"
+    NWP_CONFIG_JSON_SCHEMA_PATH = SCHEMAS_DIRECTORY / "nwp_config_schema.json"
+    
+    TACTUS_MAIN_CONFIG_JSON_SCHEMA_PATHS = (
+        MINIMAL_CONFIG_JSON_SCHEMA_PATH,
+        NWP_CONFIG_JSON_SCHEMA_PATH,
     )
 
 
 def get_main_config_schema_paths(schema_paths=None):
     """Return absolute paths for the selected main config schema files."""
     if schema_paths is None:
-        schema_paths = ConfigSchemaDefaults.DEFAULT_MAIN_CONFIG_JSON_SCHEMA_PATHS
+        schema_paths = ConfigSchemaDefaults.TACTUS_MAIN_CONFIG_JSON_SCHEMA_PATHS
     elif isinstance(schema_paths, (str, Path)):
         schema_paths = str(schema_paths).split(os.pathsep)
     return [Path(schema_path).resolve() for schema_path in schema_paths]

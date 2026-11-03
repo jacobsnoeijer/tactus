@@ -49,39 +49,6 @@
     "general"
   ],
   "definitions": {
-    "include": {
-      "title": "Include Section",
-      "description": "Sections to be included from other config files. Specified as 'key = val' pairs, where the keys are the section names and the vals are the paths to the files containing them.",
-      "type": "object",
-      "properties": {}
-    },
-    "troika": {
-      "title": "Troika",
-      "description": "TACTUS system specific path settings",
-      "type": "object",
-      "properties": {
-        "config_file": {
-          "type": "string",
-          "description": "Troika config file",
-          "default": "@TACTUS_HOME@/data/config_files/troika.yml"
-        },
-        "troika": {
-          "type": "string",
-          "description": "Troika command, allows to specify troika with full path",
-          "default": "troika"
-        }
-      }
-    },
-    "plugin_registry": {
-      "title": "Plug-in registry",
-      "type": "object",
-      "properties": {
-        "plugins": {
-          "title": "Loaded plugins",
-          "type": "object"
-        }
-      }
-    },
     "boundaries": {
       "title": "Boundary Section",
       "description": "Settings for control of boundary treatment.",
@@ -605,10 +572,6 @@
           "description": "Absolute path of date specific archive",
           "default": "@ARCHIVE_ROOT@/@ARCHIVE_TIMESTAMP@/@MEMBER_STR@"
         },
-        "logs": {
-          "type": "string",
-          "description": "Location of collected logfiles"
-        },
         "namelists": {
           "type": "string",
           "description": "Path to static namelists",
@@ -647,11 +610,6 @@
           "type": "string",
           "description": "Path to the e927 json config file",
           "default": "@CYCLE@/e927.json"
-        },
-        "sys_name": {
-          "type": "string",
-          "description": "System/package name (typically matching PACKAGE_NAME) used when resolving paths.",
-          "default": "tactus"
         }
       }
     },
@@ -733,33 +691,6 @@
           "type": "boolean",
           "description": "Do not compile assimilation related binaries",
           "default": false
-        }
-      }
-    },
-    "genesis": {
-      "title": "Genesis information",
-      "description": "Genesis information of the configuration file",
-      "type": "object",
-      "properties": {
-        "command": {
-          "description": "The command used to generate the configuration file",
-          "type": "string"
-        },
-        "package": {
-          "description": "The package used to generate the configuration file",
-          "type": "string"
-        },
-        "version": {
-          "description": "The version of the package used to generate the configuration file",
-          "type": "string"
-        },
-        "user": {
-          "description": "The user who generated the configuration file",
-          "type": "string"
-        },
-        "time": {
-          "description": "The time when the configuration file was generated",
-          "type": "string"
         }
       }
     },
@@ -1027,12 +958,6 @@
           "description": "Allow usage of static namelists as input for the tasks. The namelist should be located in the directory specified by platform.namelists and named with the convention namelist_{kind}_{task} where kind could be surfex or master and task forecast/pgd or similar. For the extraction of namelist see [namelists.md](../docs/namelists.md).",
           "type": "boolean"
         },
-        "case": {
-          "description": "Experiment name",
-          "default": "tactus_case",
-          "type": "string",
-          "pattern": "^([a-zA-Z0-9_@][a-zA-Z0-9_@]*)?$"
-        },
         "member_str": {
           "description": "String identifier of a member in the ensemble",
           "default": "mbr000",
@@ -1077,10 +1002,6 @@
         },
         "surfex": {
           "description": "SURFEX switch",
-          "type": "boolean"
-        },
-        "keep_workdirs": {
-          "description": "Do not remove working directories",
           "type": "boolean"
         },
         "csc": {
