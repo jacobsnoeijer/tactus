@@ -4,10 +4,6 @@ import json
 import os
 
 from tactus.config_parser import ConfigPaths, GeneralConstants, ParsedConfig
-from tactus.config_schema import (
-    get_main_config_json_schema,
-    get_main_config_schema_paths,
-)
 from tactus.derived_variables import derived_variables, set_times
 from tactus.eps.eps_setup import get_member_config
 from tactus.host_actions import TactusHost
@@ -35,15 +31,13 @@ def default_main(
         schema_dirs (list[str] | None): Directories used to find schema files.
     """
     ConfigPaths.add_schema_dirs(schema_dirs or [])
-    schema_paths = get_main_config_schema_paths(schema_paths)
     tactus_host = TactusHost().detect_tactus_host()
     logger.info("Read config from {}", config_file)
     config = ParsedConfig.from_file(
         config_file,
-        json_schema=get_main_config_json_schema(schema_paths),
+        json_schema=schema_paths,
         host=tactus_host,
     )
-    config.metadata["schema_files"] = [str(path) for path in schema_paths]
     # Get eps member specific config if a member is specified
     member_info = ""
     if config.get("task.args.use_member_stand_alone", True):

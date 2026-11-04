@@ -8,10 +8,6 @@ except ModuleNotFoundError:
     ecf = None
 
 from tactus.config_parser import ConfigPaths, GeneralConstants, ParsedConfig
-from tactus.config_schema import (
-    get_main_config_json_schema,
-    get_main_config_schema_paths,
-)
 from tactus.derived_variables import derived_variables
 from tactus.eps.eps_setup import get_member_config
 from tactus.host_actions import TactusHost
@@ -76,14 +72,14 @@ def default_main(kwargs: dict):
     ConfigPaths.add_schema_dirs([
         path for path in kwargs.get("SCHEMA_DIRS", "").split(os.pathsep) if path
     ])
-    schema_paths = get_main_config_schema_paths(kwargs.get("SCHEMAS") or None)
     tactus_host = TactusHost().detect_tactus_host()
     config = ParsedConfig.from_file(
         config_file,
-        json_schema=get_main_config_json_schema(schema_paths),
+        json_schema=(
+            [path for path in kwargs.get("SCHEMAS", "").split(os.pathsep) if path] or None
+        ),
         host=tactus_host,
     )
-    config.metadata["schema_files"] = [str(path) for path in schema_paths]
 
     # Reset loglevel according to (in order of priority):
     #     (a) Configs in ECFLOW UI

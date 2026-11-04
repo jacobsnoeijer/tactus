@@ -458,12 +458,22 @@ class TestGeneralBehaviour:
             _ = ParsedConfig.from_file(new_config_path, json_schema={})
 
     def test_parsed_config_registers_file_metadata_when_read_from_file(self, config_path):
-        config = ParsedConfig.from_file(
-            config_path, json_schema=get_main_config_json_schema()
-        )
+        config = ParsedConfig.from_file(config_path)
         config_source_file_path = config.metadata["source_file_path"]
         assert isinstance(config_source_file_path, Path)
         assert Path(config_source_file_path) == Path(config_path)
+        assert config.metadata["schema_files"]
+
+    def test_from_file_always_validates_supplied_schema(self, tmp_path):
+        config_path = tmp_path / "config.toml"
+        config_path.write_text("value = 123\n", encoding="utf-8")
+        json_schema = {
+            "type": "object",
+            "properties": {"value": {"type": "string"}},
+        }
+
+        with pytest.raises(ConfigFileValidationError):
+            ParsedConfig.from_file(config_path, json_schema=json_schema)
 
     def test_can_modify_model_upon_copy(self, minimal_raw_config):
         raw_config = minimal_raw_config.copy()

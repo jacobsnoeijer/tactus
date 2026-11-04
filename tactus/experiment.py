@@ -16,7 +16,6 @@ from tactus.config_parser import (
     ConfigPaths,
     ParsedConfig,
 )
-from tactus.config_schema import get_config_schema_paths, get_main_config_json_schema
 from tactus.datetime_utils import evaluate_date
 from tactus.derived_variables import set_times
 from tactus.eps.eps_setup import EPSConfig, generate_member_settings
@@ -326,14 +325,15 @@ def case_setup(
 
     Args:
         config (ParsedConfig): Parsed config file contents.
-        output_file (str): Output config file.
+        output_file (str | Path): Output config file.
         mod_files (list): Modifications. Defaults to None.
         case (str, optional): Case identifier. Defaults to None.
         host (str, optional): host name. Defaults to None.
         expand_config (boolean, optional): Flag for expanding macros in config
 
     Returns:
-        output_file (str): Output config file.
+        output_file (Path): Output config file
+        config (ParsedConfig): The ParsedConfig of output_file
 
     """
     logger.info("************ CaseSetup ******************")
@@ -381,10 +381,11 @@ def case_setup(
         logger.info("Save config to: {}", output_file)
 
     # Validate the new config
-    schema_paths = get_config_schema_paths(config)
     ParsedConfig(
         Platform(exp.config).resolve_macros(exp.config.dict()),
-        json_schema=get_main_config_json_schema(schema_paths),
+        json_schema=exp.config.json_schema.dict(),
+        host=host,
+        include_dir=exp.config.include_dir,
     )
     # Record when the run started
     exp.config = exp.config.copy(
@@ -397,7 +398,11 @@ def case_setup(
 
     exp.config.save_as(output_file)
 
-    return output_file
+    output_path = Path(output_file).resolve()
+
+    exp.config.include_dir = output_path.parent
+    exp.config.metadata["source_file_path"] = output_path
+    return Path(output_file), exp.config
 
 
 def get_git_info():

@@ -9,7 +9,6 @@ import sys
 from . import GeneralConstants
 from .argparse_wrapper import get_args_parser
 from .config_parser import ConfigPaths, ParsedConfig
-from .config_schema import get_main_config_json_schema, get_main_config_schema_paths
 from .host_actions import TactusHost
 from .logs import LoggerHandlers, log_elapsed_time, logger
 
@@ -40,13 +39,11 @@ def main(argv=None):
         if args.schema_dir is not None:
             ConfigPaths.add_schema_dirs(args.schema_dir)
 
-    schema_paths = get_main_config_schema_paths(args.schema)
     config = ParsedConfig.from_file(
         args.config_file,
-        json_schema=get_main_config_json_schema(schema_paths),
+        json_schema=args.schema,
         host=tactus_host,
     )
-    config.metadata["schema_files"] = [str(path) for path in schema_paths]
 
     with contextlib.suppress(KeyError):
         # Reset default loglevel if specified in the config

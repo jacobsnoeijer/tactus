@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from tactus.argparse_wrapper import get_args_parser
-from tactus.config_parser import ConfigPaths
+from tactus.config_parser import ConfigPaths, ParsedConfig
 from tactus.config_schema import (
     get_main_config_json_schema,
     get_main_config_schema_paths,
@@ -101,3 +101,100 @@ def test_missing_selected_schema_raises_lookup_error(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match="Could not find missing_schema.json"):
         get_main_config_schema_paths(["missing_schema.json"])
+
+
+def test_parsed_config_from_file_accepts_schema_file_list(tmp_path, monkeypatch):
+    schema_dir = tmp_path / "schemas"
+    nested_schema_dir = schema_dir / "project"
+    nested_schema_dir.mkdir(parents=True)
+    base_schema = {
+        "type": "object",
+        "properties": {
+            "a": {
+                "type": "object",
+                "properties": {
+                    "key1": {
+                        "type": "object",
+                        "properties": {
+                            "sub1": {"type": "integer"},
+                            "sub2": {"type": "integer"},
+                        },
+                    }
+                },
+            }
+        },
+    }
+    project_schema = {
+        "properties": {
+            "a": {
+                "properties": {
+                    "key1": {
+                        "properties": {
+                            "sub2": {"type": "number"},
+                            "sub3": {"type": "integer"},
+                        }
+                    },
+                    "key2": {"type": "integer"},
+                }
+            }
+        }
+    }
+    schema_files = [
+        schema_dir / "base.json",
+        nested_schema_dir / "project.json",
+    ]
+    for schema_file, schema in zip(schema_files, (base_schema, project_schema)):
+        schema_file.write_text(json.dumps(schema), encoding="utf-8")
+
+    config_file = tmp_path / "config.json"
+    config_file.write_text(
+        json.dumps({
+            "a": {
+                "key1": {"sub1": 1, "sub2": 22, "sub3": 3},
+                "key2": 2,
+            }
+        }),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(ConfigPaths, "SCHEMAS_SEARCHPATHS", [schema_dir])
+
+    config = ParsedConfig.from_file(
+        config_file, json_schema=["base.json", "project/project.json"]
+    )
+
+    assert config["a.key1"] == {"sub1": 1, "sub2": 22, "sub3": 3}
+    assert config["a.key2"] == 2
+    assert config.metadata["schema_files"] == [
+        str(schema_file.resolve()) for schema_file in schema_files
+    ]
+    merged_schema = json.loads(config.json_schema.dumps(style="json"))
+    assert merged_schema["properties"]["a"]["properties"]["key1"]["properties"] == {
+        "sub1": {"type": "integer"},
+        "sub2": {"type": "number"},
+        "sub3": {"type": "integer"},
+    }
+
+
+def test_parsed_config_from_file_accepts_single_schema_path(tmp_path, monkeypatch):
+    schema_dir = tmp_path / "schemas"
+    schema_dir.mkdir()
+    schema_file = schema_dir / "project.json"
+    schema_file.write_text(json.dumps({"type": "object"}), encoding="utf-8")
+    config_file = tmp_path / "config.json"
+    config_file.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(ConfigPaths, "SCHEMAS_SEARCHPATHS", [schema_dir])
+
+    config = ParsedConfig.from_file(config_file, json_schema="project.json")
+
+    assert config.metadata["schema_files"] == [str(schema_file.resolve())]
+
+
+def test_parsed_config_from_file_keeps_prebuilt_schema_dict(tmp_path):
+    config_file = tmp_path / "config.json"
+    config_file.write_text("{}", encoding="utf-8")
+    schema = {"type": "object", "properties": {"answer": {"type": "integer"}}}
+
+    config = ParsedConfig.from_file(config_file, json_schema=schema)
+
+    assert json.loads(config.json_schema.dumps(style="json")) == schema
+    assert "schema_files" not in config.metadata

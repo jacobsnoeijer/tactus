@@ -27,7 +27,7 @@ from toml_formatter.formatter import FormattedToml
 
 from . import GeneralConstants
 from .aux_types import BaseMapping, QuasiConstant
-from .config_schema import ConfigSchemaDefaults
+from .config_schema import ConfigSchemaDefaults, assemble_json_schema
 from .datetime_utils import DatetimeConstants
 from .formatters import duration_format_validator, duration_slice_format_validator
 from .general_utils import recursive_unfreeze
@@ -428,7 +428,7 @@ class ParsedConfig(BasicConfig):
         host=None,
         **kwargs,
     ):
-        """Initialise an instance with an arbitrary number of entries & validate them."""
+        """Initialise an instance with an arbitrary number of entries."""
         self.include_dir = include_dir
         self.json_schema = json_schema
         self.host = host
@@ -438,7 +438,7 @@ class ParsedConfig(BasicConfig):
     def data(self, new):
         """Set the underlying data stored by the instance.
 
-        Skip the validation if the class is instantiated with an empty schema.
+        Skip validation when the schema is empty.
 
         """
         validate_json_schema = len(self.json_schema) > 0
@@ -489,11 +489,42 @@ class ParsedConfig(BasicConfig):
             self.data = self.data
 
     @classmethod
-    def from_file(cls, path, include_dir=None, **kwargs):
-        """Do as in `BasicConfig`. If `None`, `include_dir` will become `path.parent`."""
+    def from_file(
+        cls,
+        path,
+        include_dir=None,
+        json_schema=None,
+        **kwargs,
+    ):
+        """Load a config file and assemble its validation schema if needed.
+
+        Args:
+            path: Path to the config file.
+            include_dir: Directory used to resolve included config files. Defaults
+                to the directory containing ``path``.
+            json_schema: A schema dictionary, a schema file path, or a list of
+                schema file paths. File paths are resolved and merged in order;
+                their resolved names are stored in metadata. ``None`` selects
+                the configured defaults (or ``TACTUS_SCHEMA_PATH``).
+            **kwargs: Additional arguments passed to the config constructor.
+
+        Notes:
+            An empty dictionary disables schema validation. A dictionary is
+            treated as an already assembled schema; strings and paths select
+            schema files to resolve and merge.
+        """
         if include_dir is None:
             include_dir = Path(path).parent
-        return super().from_file(path=path, include_dir=include_dir, **kwargs)
+
+        assembled_schema, schema_files = assemble_json_schema(json_schema)
+        kwargs["json_schema"] = assembled_schema
+
+        config = super().from_file(path=path, include_dir=include_dir, **kwargs)
+        if schema_files is not None:
+            config.metadata["schema_files"] = [
+                str(schema_file) for schema_file in schema_files
+            ]
+        return config
 
     def __repr__(self):
         rtn = super().__repr__().strip(")")

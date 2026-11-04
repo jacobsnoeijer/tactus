@@ -10,7 +10,6 @@ from toml_formatter.formatter import FormattedToml
 from toml_formatter.formatter_options import FormatterOptions
 
 from tactus.config_parser import ParsedConfig
-from tactus.config_schema import get_main_config_json_schema
 from tactus.derived_variables import set_times
 from tactus.experiment import case_setup
 from tactus.toolbox import Platform
@@ -50,9 +49,7 @@ def test_save_config(tmp_directory: Path, default_config):
     saved_config = tmp_directory / "saved_config.toml"
     config = default_config
     config.save_as(saved_config)
-    config = ParsedConfig.from_file(
-        saved_config, json_schema=get_main_config_json_schema()
-    )
+    config = ParsedConfig.from_file(saved_config)
 
 
 @pytest.fixture
@@ -85,15 +82,16 @@ def test_set_domain_from_file(
     with open(domain_file, mode="w", encoding="utf8") as fh:
         tomlkit.dump(update, fh)
 
-    case_setup(
+    output_file, config = case_setup(
         default_config,
         output_file,
         [domain_file],
         expand_config=True,
     )
-    config = ParsedConfig.from_file(
-        output_file, json_schema=get_main_config_json_schema()
-    )
+    assert isinstance(config, ParsedConfig)
+    assert config.metadata["schema_files"] == default_config.metadata["schema_files"]
+    assert config.metadata["source_file_path"] == Path(output_file).resolve()
+    assert config.include_dir == Path(output_file).resolve().parent
     assert config["domain.name"] == "TEST_DOMAIN"
     assert config["domain.name"] == test_domain["name"]
     assert config["general.case"] == test_domain["gridtype"]
@@ -106,10 +104,7 @@ def test_set_case_name(default_config, default_config_dir):
     output_file = f"{default_config_dir}/test_set_case_name.toml"
     case = "a_unique_name"
 
-    case_setup(default_config, output_file, [], case=case)
-    config = ParsedConfig.from_file(
-        output_file, json_schema=get_main_config_json_schema()
-    )
+    output_file_name, config = case_setup(default_config, output_file, [], case=case)
     assert config["general.case"] == case
     os.remove(output_file)
 
@@ -117,7 +112,7 @@ def test_set_case_name(default_config, default_config_dir):
 @pytest.mark.usefixtures("_module_mockers_atos_bologna")
 def test_output_file_name(default_config):
     config = default_config.copy(update=set_times(default_config))
-    output_file_name = case_setup(config, None, [])
+    output_file_name, cfg = case_setup(config, None, [])
     case = Platform(config).substitute(config.get("general.case"))
     assert output_file_name[:-5] == case
     os.remove(output_file_name)
@@ -145,5 +140,5 @@ def test_write_read_config(default_config, default_config_dir):
     ):
         file_needs_formatting = True
     assert not file_needs_formatting
-    ParsedConfig.from_file(output_file, json_schema=get_main_config_json_schema())
+    ParsedConfig.from_file(output_file)
     os.remove(output_file)
