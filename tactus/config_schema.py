@@ -8,6 +8,7 @@ from pathlib import Path
 from . import GeneralConstants
 from .aux_types import QuasiConstant
 from .general_utils import merge_dicts
+from .path_utils import path_from_subpath
 
 
 class ConfigSchemaDefaults(QuasiConstant):
@@ -31,7 +32,22 @@ def get_main_config_schema_paths(schema_paths=None):
         schema_paths = ConfigSchemaDefaults.TACTUS_MAIN_CONFIG_JSON_SCHEMA_PATHS
     elif isinstance(schema_paths, (str, Path)):
         schema_paths = str(schema_paths).split(os.pathsep)
-    return [Path(schema_path).resolve() for schema_path in schema_paths]
+
+    resolved_paths = []
+    for schema_path in schema_paths:
+        schema_path = Path(schema_path)
+        if schema_path.exists():
+            resolved_path = schema_path.resolve()
+        else:
+            # Import here to avoid a module-level cycle: config_parser imports
+            # this module.
+            from .config_parser import ConfigPaths
+
+            resolved_path = path_from_subpath(
+                schema_path, ConfigPaths.SCHEMAS_SEARCHPATHS
+            )
+        resolved_paths.append(resolved_path.resolve())
+    return resolved_paths
 
 
 def get_main_config_json_schema(schema_paths=None):

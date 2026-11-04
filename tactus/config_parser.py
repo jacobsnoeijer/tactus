@@ -3,7 +3,6 @@
 
 import contextlib
 import copy
-import glob
 import json
 import os
 import tempfile
@@ -34,6 +33,7 @@ from .formatters import duration_format_validator, duration_slice_format_validat
 from .general_utils import recursive_unfreeze
 from .logs import logger
 from .os_utils import resolve_path_relative_to_package
+from .path_utils import path_from_subpath as find_path
 from .toolbox import Platform
 
 
@@ -164,34 +164,21 @@ class ConfigPaths:
         )
 
     @staticmethod
-    def path_from_subpath(subpath, last=False) -> Path:
-        """Interface to find full path given any subpath, by searching 'searchpaths'.
+    def path_from_subpath(subpath, last=False, searchpaths=None) -> Path:
+        """Find a path in the configured or explicitly provided search paths.
 
-        Arguments:
-            subpath (str): Subpath to search for
-            last(boolan): Return last match
+        Args:
+            subpath (str | Path): Subpath to search for.
+            last (bool): Return the last match within the first matching directory.
+            searchpaths (list[str | Path] | None): Ordered directories to search.
+                Defaults to the configured config-data search paths.
 
         Returns:
-            (Path): Full path to target
-
-        Raises:
-            RuntimeRerror: Various errors
+            Path: Full path to the target.
         """
-        return_index = -1 if last else 0
-        pattern = f"**/{subpath}"
-        searchpaths = ConfigPaths.CONFIG_DATA_SEARCHPATHS.copy()
-        for searchpath in searchpaths:
-            results = list(Path(searchpath).rglob(pattern))
-            if len(results) > 1 and not last:
-                logger.warning("Multiple matches found for subpath: {}", subpath)
-                logger.warning("Selecting the first result: {}", results[0])
-
-            if len(results) == 0:
-                continue
-
-            return results[return_index]
-
-        raise RuntimeError(f"Could not find {subpath}")
+        if searchpaths is None:
+            searchpaths = ConfigPaths.CONFIG_DATA_SEARCHPATHS
+        return find_path(subpath, searchpaths, last=last)
 
 
 class ConfigFileValidationError(Exception):
@@ -603,15 +590,17 @@ def _get_all_json_schemas(json_schema, schemas_paths):
     ]
     # Revert schema_paths list to make first path win, since it then occurs last
     # in below iteration.
+    search_paths = schemas_paths
     schemas_paths = schemas_paths[::-1]
 
     for schemas_path in schemas_paths:
-        for filename in glob.glob(f"{schemas_path}/*.json"):
-            basename = os.path.basename(filename)
-            if basename in exclude or not basename.endswith("_section_schema.json"):
+        for filename in Path(schemas_path).rglob("*_section_schema.json"):
+            basename = filename.name
+            if basename in exclude:
                 continue
             section_name = basename.replace("_section_schema.json", "")
-            updated_schema = {"$ref": f"file:{filename}"}
+            schema_file = find_path(basename, search_paths)
+            updated_schema = {"$ref": f"file:{schema_file}"}
             json_schema["properties"].update({section_name: updated_schema})
 
     return json_schema
@@ -703,20 +692,20 @@ def _expand_config_include_section(
                 msg += "but rather in their own separate files."
                 raise ConflictingValidationSchemasError(msg)
 
-            schema_file = None
-            for spath in schemas_path:
-                candidate = Path(spath) / f"{section_name}_section_schema.json"
-                if candidate.is_file():
-                    schema_file = candidate
-                    break
-            if schema_file is None:
+            try:
+                schema_file = find_path(
+                    f"{section_name}_section_schema.json", schemas_path
+                )
+            except RuntimeError:
                 logger.warning(
                     'No validation schema for config section "{}". Using default.',
                     sections_traversed_str,
                 )
                 # default_section_schema.json lives in the tactus schemas dir
                 # (assumed to be last in list)
-                schema_file = Path(schemas_path[-1]) / "default_section_schema.json"
+                schema_file = find_path(
+                    "default_section_schema.json", [schemas_path[-1]]
+                )
 
             updated_config, updated_schema = _expand_config_include_section(
                 raw_config=included_config_section,
