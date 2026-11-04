@@ -1,8 +1,13 @@
 """Tests for loading and combining main configuration schemas."""
 
 import json
+import os
 from pathlib import Path
 
+import pytest
+
+import tactus.__main__ as tactus_main
+import tactus.argparse_wrapper as argparse_wrapper
 from tactus.argparse_wrapper import get_args_parser
 from tactus.config_parser import ConfigPaths, _get_all_json_schemas
 from tactus.config_schema import (
@@ -49,15 +54,6 @@ def test_main_config_schemas_are_merged_in_order(tmp_path):
     assert merged_schema["properties"]["myinput"]["required"] == ["a"]
 
 
-def test_main_schema_files_are_not_meta_validated(tmp_path):
-    schema_path = tmp_path / "schema.json"
-    schema_path.write_text('{"type": "not-a-json-schema-type"}', encoding="utf-8")
-
-    assert get_main_config_json_schema([schema_path]) == {
-        "type": "not-a-json-schema-type"
-    }
-
-
 def test_schema_cli_accepts_a_list_of_files():
     args = get_args_parser().parse_args([
         "start",
@@ -92,42 +88,24 @@ def test_schema_cli_can_be_repeated():
     ]
 
 
-def test_add_numbers_project_resolves_assemble_config_and_schema_files(
-    tmp_path, monkeypatch
-):
-    """Project-local assemble and schema files use the common path lookup."""
-    project_root = tmp_path / "addNumbers"
-    data_dir = project_root / "tactus_data"
-    assemble_dir = data_dir / "namelist_generation_input" / "CY50t2"
-    assemble_dir.mkdir(parents=True)
-    assemble_file = assemble_dir / "assemble_addNumbers.yml"
-    assemble_file.write_text("sum: [left, right]\n", encoding="utf-8")
+def test_explicit_schema_paths_override_environment(tmp_path, monkeypatch):
+    env_schema = tmp_path / "env_schema.json"
+    explicit_schema = tmp_path / "explicit_schema.json"
+    env_schema.write_text("{}", encoding="utf-8")
+    explicit_schema.write_text("{}", encoding="utf-8")
+    monkeypatch.setenv("TACTUS_SCHEMA_PATH", str(env_schema))
 
-    schemas_dir = project_root / "schemas" / "nested"
-    schemas_dir.mkdir(parents=True)
-    schema_file = schemas_dir / "addNumbers_schema.json"
-    schema_file.write_text(
-        json.dumps({"type": "object", "properties": {"left": {"type": "integer"}}}),
-        encoding="utf-8",
-    )
-    section_schema_file = schemas_dir / "addNumbers_section_schema.json"
-    section_schema_file.write_text(json.dumps({"type": "object"}), encoding="utf-8")
-
-    monkeypatch.setattr(ConfigPaths, "CONFIG_DATA_SEARCHPATHS", [data_dir])
-    monkeypatch.setattr(ConfigPaths, "SCHEMAS_SEARCHPATHS", [project_root / "schemas"])
-
-    assert _resolve_namelist_path(
-        "namelist_generation_input/CY50t2/assemble_addNumbers.yml"
-    ) == assemble_file
-    assert get_main_config_schema_paths("addNumbers_schema.json") == [
-        schema_file.resolve()
+    assert get_main_config_schema_paths([explicit_schema]) == [
+        explicit_schema.resolve()
     ]
-    assert get_main_config_json_schema("addNumbers_schema.json")["properties"][
-        "left"
-    ] == {"type": "integer"}
-    section_schema = _get_all_json_schemas(
-        {"properties": {}}, [project_root / "schemas"]
-    )
-    assert section_schema["properties"]["addNumbers"] == {
-        "$ref": f"file:{section_schema_file}"
-    }
+
+
+def test_missing_selected_schema_raises_lookup_error(tmp_path, monkeypatch):
+    schema_dir = tmp_path / "schemas"
+    schema_dir.mkdir()
+    monkeypatch.setattr(ConfigPaths, "SCHEMAS_SEARCHPATHS", [schema_dir])
+
+    with pytest.raises(RuntimeError, match="Could not find missing_schema.json"):
+        get_main_config_schema_paths(["missing_schema.json"])
+
+

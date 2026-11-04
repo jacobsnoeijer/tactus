@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from tactus.config_parser import ParsedConfig
+from tactus.config_parser import ConfigPaths, ParsedConfig
 from tactus.config_schema import get_config_schema_paths
 from tactus.derived_variables import derived_variables
 from tactus.logs import logger
@@ -341,6 +341,7 @@ class TaskSettings(object):
                     "NPROCY",
                     "CONFIG",
                     "SCHEMAS",
+                    "SCHEMA_DIRS",
                     "TACTUS_HOME",
                     "KEEP_WORKDIRS",
                     "MEMBER",
@@ -410,6 +411,9 @@ class TaskSettings(object):
                 schema_paths = [str(path) for path in get_config_schema_paths(config)]
                 schemas = shlex.quote(json.dumps(schema_paths))
                 file_handler.write(f"export STAND_ALONE_SCHEMAS={schemas}\n")
+                schema_dirs = [str(path) for path in ConfigPaths.SCHEMAS_SEARCHPATHS]
+                schema_dirs = shlex.quote(json.dumps(schema_dirs))
+                file_handler.write(f"export STAND_ALONE_SCHEMA_DIRS={schema_dirs}\n")
                 if member is not None:
                     file_handler.write(f"export STAND_ALONE_MEMBER={member}\n")
 

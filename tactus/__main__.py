@@ -30,14 +30,17 @@ def main(argv=None):
         args.run_command(args=args)
         return
 
-    # Evaluate tactus host and config paths
+    # Evaluate tactus host, config and schema paths
     tactus_host = TactusHost().detect_tactus_host()
     with contextlib.suppress(AttributeError):
         if args.config_data_dir is not None:
-            for config_data_dir in args.config_data_dir[::-1]:
-                ConfigPaths.CONFIG_DATA_SEARCHPATHS.insert(0, config_data_dir)
+            ConfigPaths.add_config_data_dirs(args.config_data_dir)
+
+    with contextlib.suppress(AttributeError):
+        if args.schema_dir is not None:
+            ConfigPaths.add_schema_dirs(args.schema_dir)
+
     schema_paths = get_main_config_schema_paths(args.schema)
-    ConfigPaths.add_schema_paths(schema_paths)
     config = ParsedConfig.from_file(
         args.config_file,
         json_schema=get_main_config_json_schema(schema_paths),

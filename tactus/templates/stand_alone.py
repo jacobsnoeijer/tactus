@@ -18,7 +18,13 @@ from tactus.tasks.discover_task import get_task
 logger.enable("tactus")
 
 
-def default_main(task: str, config_file: str, tactus_home: str, schema_paths=None):
+def default_main(
+    task: str,
+    config_file: str,
+    tactus_home: str,
+    schema_paths=None,
+    schema_dirs=None,
+):
     """Execute default main.
 
     Args:
@@ -26,9 +32,10 @@ def default_main(task: str, config_file: str, tactus_home: str, schema_paths=Non
         config_file (str): Config file
         tactus_home(str): tactus home path
         schema_paths (list[Path] | None): Schema files used to validate the config.
+        schema_dirs (list[str] | None): Directories used to find schema files.
     """
+    ConfigPaths.add_schema_dirs(schema_dirs or [])
     schema_paths = get_main_config_schema_paths(schema_paths)
-    ConfigPaths.add_schema_paths(schema_paths)
     tactus_host = TactusHost().detect_tactus_host()
     logger.info("Read config from {}", config_file)
     config = ParsedConfig.from_file(
@@ -71,4 +78,5 @@ if __name__ == "__main__":
         config_file=os.environ["STAND_ALONE_TASK_CONFIG"],
         tactus_home=os.environ["STAND_ALONE_TACTUS_HOME"],
         schema_paths=json.loads(os.environ.get("STAND_ALONE_SCHEMAS", "null")),
+        schema_dirs=json.loads(os.environ.get("STAND_ALONE_SCHEMA_DIRS", "null")),
     )

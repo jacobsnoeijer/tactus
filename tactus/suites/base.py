@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 from typing import List, Optional, Union
 
+from ..config_parser import ConfigPaths
 from ..config_schema import get_config_schema_paths
 from ..datetime_utils import as_datetime
 from ..logs import LogDefaults, logger
@@ -59,7 +60,9 @@ class SuiteDefinition(object):
         self.config = config
 
         self.platform = Platform(config)
-        self.config = config
+
+        self.schemas = os.pathsep.join(str(path) for path in get_config_schema_paths(config))
+        self.schema_dir = os.pathsep.join(str(path) for path in ConfigPaths.SCHEMAS_SEARCHPATHS)
 
         ecf_out = self.config["scheduler.ecfvars.ecf_out"]
         ecf_files = self.config["scheduler.ecfvars.ecf_files"]
@@ -158,9 +161,8 @@ class SuiteDefinition(object):
             "FP_PRECISION": "",
             "LOGLEVEL": loglevel,
             "CONFIG": str(config_file),
-            "SCHEMAS": os.pathsep.join(
-                str(path) for path in get_config_schema_paths(config)
-            ),
+            "SCHEMAS": self.schemas,
+            "SCHEMA_DIRS": self.schema_dirs,
             "TROIKA": troika,
             "TROIKA_CONFIG": troika_config,
             "BASETIME": starttime,

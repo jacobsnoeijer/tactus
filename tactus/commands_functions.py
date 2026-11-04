@@ -150,7 +150,6 @@ def create_exp(args, config):
 
     if args.start_suite:
         schema_paths = get_config_schema_paths(config)
-        ConfigPaths.add_schema_paths(schema_paths)
         config = ParsedConfig.from_file(
             output_file, json_schema=get_main_config_json_schema(schema_paths)
         )

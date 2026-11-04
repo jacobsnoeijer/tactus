@@ -12,4 +12,7 @@ The following environment variables can be used to control various behaviour.
 
 - TACTUS_LOGLEVEL sets the logger log level. Select e.g. between info and debug. For more options see the [loguru](https://loguru.readthedocs.io/) documentation.
 - TACTUS_HOST allows to override the automatic detection of host. The host is used to pick up specific configuration settings. See e.g. `tactus show host`
+- TACTUS_CONFIG_PATH selects the main configuration file. It can be overridden with `--config-file`.
 - TACTUS_CONFIG_DATA_DIR sets additional search paths for config files. This is useful when using tactus as a package. To see paths in use run `tactus show paths`.
+- TACTUS_SCHEMA_PATH selects one or more schema files. It can be overridden with `--schema`.
+- TACTUS_SCHEMAS_DIR sets additional search paths for schema files. The same directories can be supplied with `--schema-dir`.

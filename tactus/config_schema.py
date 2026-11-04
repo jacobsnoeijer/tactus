@@ -8,7 +8,6 @@ from pathlib import Path
 from . import GeneralConstants
 from .aux_types import QuasiConstant
 from .general_utils import merge_dicts
-from .path_utils import path_from_subpath
 
 
 class ConfigSchemaDefaults(QuasiConstant):
@@ -27,9 +26,18 @@ class ConfigSchemaDefaults(QuasiConstant):
 
 
 def get_main_config_schema_paths(schema_paths=None):
-    """Return absolute paths for the selected main config schema files."""
+    """Return absolute paths for the selected main config schema files.
+
+    When no schema files are supplied, ``TACTUS_SCHEMA_PATH`` can select one or
+    more files. Otherwise the packaged main config schemas are used. Search roots
+    are configured separately; selecting a file does not add its parent directory.
+    """
     if schema_paths is None:
-        schema_paths = ConfigSchemaDefaults.TACTUS_MAIN_CONFIG_JSON_SCHEMA_PATHS
+        schema_paths = os.getenv("TACTUS_SCHEMA_PATH")
+        if schema_paths:
+            schema_paths = schema_paths.split(os.pathsep)
+        else:
+            schema_paths = ConfigSchemaDefaults.TACTUS_MAIN_CONFIG_JSON_SCHEMA_PATHS
     elif isinstance(schema_paths, (str, Path)):
         schema_paths = str(schema_paths).split(os.pathsep)
 
@@ -43,9 +51,7 @@ def get_main_config_schema_paths(schema_paths=None):
             # this module.
             from .config_parser import ConfigPaths
 
-            resolved_path = path_from_subpath(
-                schema_path, ConfigPaths.SCHEMAS_SEARCHPATHS
-            )
+            resolved_path = ConfigPaths.schema_path_from_subpath(schema_path)
         resolved_paths.append(resolved_path.resolve())
     return resolved_paths
 
@@ -55,7 +61,8 @@ def get_main_config_json_schema(schema_paths=None):
 
     Args:
         schema_paths (list[Path] | None): Schema files to merge in order. If None,
-            the minimal Tactus schema and the NWP schema are used.
+            ``TACTUS_SCHEMA_PATH`` is used when set; otherwise the minimal Tactus
+            schema and the NWP schema are used.
 
     Returns:
         dict: The merged JSON schema.

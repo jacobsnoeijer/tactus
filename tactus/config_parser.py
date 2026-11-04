@@ -33,7 +33,7 @@ from .formatters import duration_format_validator, duration_slice_format_validat
 from .general_utils import recursive_unfreeze
 from .logs import logger
 from .os_utils import resolve_path_relative_to_package
-from .path_utils import path_from_subpath as find_path
+from .path_utils import path_from_subpath
 from .toolbox import Platform
 
 
@@ -53,42 +53,51 @@ class ConfigParserDefaults(QuasiConstant):
         CONFIG_PATH = PACKAGE_CONFIG_PATH
 
 
+def _get_searchpaths(env_var, default_path):
+    """Get an ordered search path from an environment variable and default."""
+    env_paths = os.getenv(env_var)
+    searchpaths = env_paths.split(os.pathsep) if env_paths else []
+    erroneous_paths = [path for path in searchpaths if not os.path.isabs(path)]
+    if erroneous_paths:
+        raise RuntimeError(f"{env_var} is not absolute: {erroneous_paths}")
+    searchpaths.append(default_path)
+    return searchpaths
+
+
 class ConfigPaths:
-    """Support multiple path search."""
+    """Maintain independent search paths for config data and schemas."""
 
-    _env_data_paths = os.getenv("TACTUS_CONFIG_DATA_DIR")
-    CONFIG_DATA_SEARCHPATHS = (
-        _env_data_paths.split(":") if _env_data_paths is not None else []
+    CONFIG_DATA_SEARCHPATHS = _get_searchpaths(
+        "TACTUS_CONFIG_DATA_DIR", ConfigParserDefaults.DATA_DIRECTORY
     )
-    erroneous_paths = [
-        path for path in CONFIG_DATA_SEARCHPATHS if not os.path.isabs(path)
-    ]
-    if len(erroneous_paths) > 0:
-        raise RuntimeError(f"TACTUS_CONFIG_DATA_DIR is not absolute: {erroneous_paths}")
-    CONFIG_DATA_SEARCHPATHS.append(ConfigParserDefaults.DATA_DIRECTORY)
+    SCHEMAS_SEARCHPATHS = _get_searchpaths(
+        "TACTUS_SCHEMAS_DIR", ConfigSchemaDefaults.SCHEMAS_DIRECTORY
+    )
 
-    _env_schemas_paths = os.getenv("TACTUS_SCHEMAS_DIR")
-    SCHEMAS_SEARCHPATHS = (
-        _env_schemas_paths.split(":") if _env_schemas_paths is not None else []
-    )
-    erroneous_schema_paths = [
-        path for path in SCHEMAS_SEARCHPATHS if not os.path.isabs(path)
-    ]
-    if len(erroneous_schema_paths) > 0:
-        raise RuntimeError(
-            f"TACTUS_SCHEMAS_DIR is not absolute: {erroneous_schema_paths}"
-        )
-    SCHEMAS_SEARCHPATHS.append(ConfigSchemaDefaults.SCHEMAS_DIRECTORY)
+    @staticmethod
+    def _prepend_search_paths(searchpaths, paths):
+        """Prepend directories, preserving order and avoiding duplicates."""
+        if isinstance(paths, (str, Path)):
+            paths = [paths]
+
+        existing_paths = {Path(path).resolve() for path in searchpaths}
+        new_paths = []
+        for path in paths:
+            path = Path(path).resolve()
+            if path not in existing_paths:
+                new_paths.append(str(path))
+                existing_paths.add(path)
+        searchpaths[:0] = new_paths
 
     @classmethod
-    def add_schema_paths(cls, schema_files):
-        """Add directories containing selected schemas to the search path."""
-        searchpaths = [Path(path).resolve() for path in cls.SCHEMAS_SEARCHPATHS]
-        for schema_file in schema_files:
-            schema_path = Path(schema_file).resolve().parent
-            if schema_path not in searchpaths:
-                cls.SCHEMAS_SEARCHPATHS.insert(0, str(schema_path))
-                searchpaths.insert(0, schema_path)
+    def add_config_data_dirs(cls, paths):
+        """Add directories to the config-data search path."""
+        cls._prepend_search_paths(cls.CONFIG_DATA_SEARCHPATHS, paths)
+
+    @classmethod
+    def add_schema_dirs(cls, paths):
+        """Add directories to the schema search path."""
+        cls._prepend_search_paths(cls.SCHEMAS_SEARCHPATHS, paths)
 
     @staticmethod
     def print(config_file=None, host=None):
@@ -129,12 +138,9 @@ class ConfigPaths:
 
             return mapping
 
-        dirmap = {
-            "config_file_schemas": "config_files/config_file_schemas",
-        }
+        dirmap = {}
         list_paths = [
             "config_files",
-            "config_file_schemas",
             "namelist_generation_input",
             "input",
         ]
@@ -153,7 +159,12 @@ class ConfigPaths:
         logger.info("tactus paths for host={}", host)
         logger.info(" Package directory: {}", GeneralConstants.PACKAGE_DIRECTORY)
         logger.info(
-            " Searchpaths: {}", [str(x) for x in ConfigPaths.CONFIG_DATA_SEARCHPATHS]
+            " Config data searchpaths: {}",
+            [str(x) for x in ConfigPaths.CONFIG_DATA_SEARCHPATHS],
+        )
+        logger.info(
+            " Schema searchpaths: {}",
+            [str(x) for x in ConfigPaths.SCHEMAS_SEARCHPATHS],
         )
         logger.info(
             " Data paths in search order: {}", json.dumps(path_info_main, indent=4)
@@ -164,21 +175,22 @@ class ConfigPaths:
         )
 
     @staticmethod
-    def path_from_subpath(subpath, last=False, searchpaths=None) -> Path:
-        """Find a path in the configured or explicitly provided search paths.
+    def path_from_subpath(subpath, last=False) -> Path:
+        """Find a file using only the configured config-data search paths."""
+        return path_from_subpath(
+            subpath, ConfigPaths.CONFIG_DATA_SEARCHPATHS, last=last
+        )
 
-        Args:
-            subpath (str | Path): Subpath to search for.
-            last (bool): Return the last match within the first matching directory.
-            searchpaths (list[str | Path] | None): Ordered directories to search.
-                Defaults to the configured config-data search paths.
+    @staticmethod
+    def schema_path_from_subpath(subpath, last=False, searchpaths=None) -> Path:
+        """Find a file using only the configured schema search paths.
 
-        Returns:
-            Path: Full path to the target.
+        An explicit ``searchpaths`` list can be supplied for operations that
+        intentionally use a subset of the schema search roots.
         """
         if searchpaths is None:
-            searchpaths = ConfigPaths.CONFIG_DATA_SEARCHPATHS
-        return find_path(subpath, searchpaths, last=last)
+            searchpaths = ConfigPaths.SCHEMAS_SEARCHPATHS
+        return path_from_subpath(subpath, searchpaths, last=last)
 
 
 class ConfigFileValidationError(Exception):
@@ -599,7 +611,9 @@ def _get_all_json_schemas(json_schema, schemas_paths):
             if basename in exclude:
                 continue
             section_name = basename.replace("_section_schema.json", "")
-            schema_file = find_path(basename, search_paths)
+            schema_file = ConfigPaths.schema_path_from_subpath(
+                basename, searchpaths=search_paths
+            )
             updated_schema = {"$ref": f"file:{schema_file}"}
             json_schema["properties"].update({section_name: updated_schema})
 
@@ -693,8 +707,8 @@ def _expand_config_include_section(
                 raise ConflictingValidationSchemasError(msg)
 
             try:
-                schema_file = find_path(
-                    f"{section_name}_section_schema.json", schemas_path
+                schema_file = ConfigPaths.schema_path_from_subpath(
+                    f"{section_name}_section_schema.json", searchpaths=schemas_path
                 )
             except RuntimeError:
                 logger.warning(
@@ -703,8 +717,8 @@ def _expand_config_include_section(
                 )
                 # default_section_schema.json lives in the tactus schemas dir
                 # (assumed to be last in list)
-                schema_file = find_path(
-                    "default_section_schema.json", [schemas_path[-1]]
+                schema_file = ConfigPaths.schema_path_from_subpath(
+                    "default_section_schema.json", searchpaths=[schemas_path[-1]]
                 )
 
             updated_config, updated_schema = _expand_config_include_section(

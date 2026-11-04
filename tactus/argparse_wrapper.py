@@ -53,9 +53,17 @@ def get_common_parser(config_file_required=False):
         type=Path,
         default=None,
         help=(
-            "JSON schema file(s) used to validate the config. Multiple files are "
-            "merged in the order given."
+            "Schema file(s) used to validate the config. Multiple files are "
+            "merged in the order given. Overrides TACTUS_SCHEMA_PATH."
         ),
+    )
+    common_parser.add_argument(
+        "--schema-dir",
+        nargs="+",
+        type=str,
+        help="Search path(s) for schema files.",
+        required=False,
+        default=None,
     )
     if config_file_required:
         common_parser.add_argument(
@@ -95,7 +103,7 @@ def get_common_parser(config_file_required=False):
         "--config-data-dir",
         nargs="+",
         type=str,
-        help="Search path(s) for config directory.",
+        help="Search path(s) for config-data directory.",
         required=False,
         default=None,
     )
