@@ -64,7 +64,7 @@ class SuiteDefinition(object):
         self.schemas = os.pathsep.join(
             str(path) for path in get_config_schema_paths(config)
         )
-        self.schema_dir = os.pathsep.join(
+        self.schema_dirs = os.pathsep.join(
             str(path) for path in ConfigPaths.SCHEMAS_SEARCHPATHS
         )
 
