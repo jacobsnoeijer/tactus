@@ -36,9 +36,7 @@ class TestCases:
             args: Command line arguments
 
         """
-        ConfigPaths.add_config_data_dirs(
-            [os.path.join(os.getcwd(), "config_files")]
-        )
+        ConfigPaths.add_config_data_dirs([os.path.join(os.getcwd(), "config_files")])
 
         self.tactus_host = TactusHost().detect_tactus_host()
 

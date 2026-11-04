@@ -83,10 +83,10 @@ class ConfigPaths:
         existing_paths = {Path(path).resolve() for path in searchpaths}
         new_paths = []
         for path in paths:
-            path = Path(path).resolve()
-            if path not in existing_paths:
-                new_paths.append(str(path))
-                existing_paths.add(path)
+            resolved_path = Path(path).resolve()
+            if resolved_path not in existing_paths:
+                new_paths.append(str(resolved_path))
+                existing_paths.add(resolved_path)
         searchpaths[:0] = new_paths
 
     @classmethod
@@ -177,9 +177,7 @@ class ConfigPaths:
     @staticmethod
     def path_from_subpath(subpath, last=False) -> Path:
         """Find a file using only the configured config-data search paths."""
-        return path_from_subpath(
-            subpath, ConfigPaths.CONFIG_DATA_SEARCHPATHS, last=last
-        )
+        return path_from_subpath(subpath, ConfigPaths.CONFIG_DATA_SEARCHPATHS, last=last)
 
     @staticmethod
     def schema_path_from_subpath(subpath, last=False, searchpaths=None) -> Path:

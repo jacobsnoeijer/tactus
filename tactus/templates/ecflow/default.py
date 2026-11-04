@@ -73,9 +73,9 @@ def parse_ecflow_vars():
 def default_main(kwargs: dict):
     """Ecflow container default method."""
     config_file = kwargs.get("CONFIG")
-    ConfigPaths.add_schema_dirs(
-        [path for path in kwargs.get("SCHEMA_DIRS", "").split(os.pathsep) if path]
-    )
+    ConfigPaths.add_schema_dirs([
+        path for path in kwargs.get("SCHEMA_DIRS", "").split(os.pathsep) if path
+    ])
     schema_paths = get_main_config_schema_paths(kwargs.get("SCHEMAS") or None)
     tactus_host = TactusHost().detect_tactus_host()
     config = ParsedConfig.from_file(

@@ -1,20 +1,16 @@
 """Tests for loading and combining main configuration schemas."""
 
 import json
-import os
 from pathlib import Path
 
 import pytest
 
-import tactus.__main__ as tactus_main
-import tactus.argparse_wrapper as argparse_wrapper
 from tactus.argparse_wrapper import get_args_parser
-from tactus.config_parser import ConfigPaths, _get_all_json_schemas
+from tactus.config_parser import ConfigPaths
 from tactus.config_schema import (
     get_main_config_json_schema,
     get_main_config_schema_paths,
 )
-from tactus.namelist import _resolve_namelist_path
 
 
 def test_main_config_schemas_are_merged_in_order(tmp_path):
@@ -95,9 +91,7 @@ def test_explicit_schema_paths_override_environment(tmp_path, monkeypatch):
     explicit_schema.write_text("{}", encoding="utf-8")
     monkeypatch.setenv("TACTUS_SCHEMA_PATH", str(env_schema))
 
-    assert get_main_config_schema_paths([explicit_schema]) == [
-        explicit_schema.resolve()
-    ]
+    assert get_main_config_schema_paths([explicit_schema]) == [explicit_schema.resolve()]
 
 
 def test_missing_selected_schema_raises_lookup_error(tmp_path, monkeypatch):
@@ -107,5 +101,3 @@ def test_missing_selected_schema_raises_lookup_error(tmp_path, monkeypatch):
 
     with pytest.raises(RuntimeError, match="Could not find missing_schema.json"):
         get_main_config_schema_paths(["missing_schema.json"])
-
-

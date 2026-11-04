@@ -43,9 +43,7 @@ def test_resolve_file_prefers_local_file_over_package(tmp_path):
 
 
 def test_resolve_file_falls_back_to_package(tmp_path):
-    with resolve_file(
-        "__init__.py", searchpaths=tmp_path, package="tactus"
-    ) as path:
+    with resolve_file("__init__.py", searchpaths=tmp_path, package="tactus") as path:
         assert path.name == "__init__.py"
         assert path.is_file()
 
@@ -59,6 +57,5 @@ def test_resolve_file_accepts_absolute_path(tmp_path):
 
 
 def test_resolve_file_rejects_parent_directory_reference():
-    with pytest.raises(ValueError, match="cannot contain"):
-        with resolve_file("../config.yml"):
-            pass
+    with pytest.raises(ValueError, match="cannot contain"), resolve_file("../config.yml"):
+        pass

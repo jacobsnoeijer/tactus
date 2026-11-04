@@ -42,8 +42,8 @@ def get_main_config_schema_paths(schema_paths=None):
         schema_paths = str(schema_paths).split(os.pathsep)
 
     resolved_paths = []
-    for schema_path in schema_paths:
-        schema_path = Path(schema_path)
+    for schema in schema_paths:
+        schema_path = Path(schema)
         if schema_path.exists():
             resolved_path = schema_path.resolve()
         else:

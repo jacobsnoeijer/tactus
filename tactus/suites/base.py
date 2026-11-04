@@ -61,8 +61,12 @@ class SuiteDefinition(object):
 
         self.platform = Platform(config)
 
-        self.schemas = os.pathsep.join(str(path) for path in get_config_schema_paths(config))
-        self.schema_dir = os.pathsep.join(str(path) for path in ConfigPaths.SCHEMAS_SEARCHPATHS)
+        self.schemas = os.pathsep.join(
+            str(path) for path in get_config_schema_paths(config)
+        )
+        self.schema_dir = os.pathsep.join(
+            str(path) for path in ConfigPaths.SCHEMAS_SEARCHPATHS
+        )
 
         ecf_out = self.config["scheduler.ecfvars.ecf_out"]
         ecf_files = self.config["scheduler.ecfvars.ecf_files"]
