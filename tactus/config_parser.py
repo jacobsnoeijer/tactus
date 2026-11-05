@@ -442,16 +442,19 @@ class ParsedConfig(BasicConfig):
     def __init__(
         self,
         *args,
-        json_schema,
+        json_schema=None,
         include_dir=ConfigParserDefaults.CONFIG_DIRECTORY,
         host=None,
         **kwargs,
     ):
         """Initialise an instance with an arbitrary number of entries & validate them."""
         self.include_dir = include_dir
-        self.json_schema = json_schema
+        assembled_schema, schema_files = assemble_json_schema(json_schema)
+        self.json_schema = assembled_schema
         self.host = host
         super().__init__(*args, **kwargs)
+        if schema_files is not None:
+            self.metadata["schema_files"] = [str(file) for file in schema_files]
 
     @BasicConfig.data.setter
     def data(self, new):
@@ -540,9 +543,7 @@ class ParsedConfig(BasicConfig):
 
         config = super().from_file(path=path, include_dir=include_dir, **kwargs)
         if schema_files is not None:
-            config.metadata["schema_files"] = [
-                str(schema_file) for schema_file in schema_files
-            ]
+            config.metadata["schema_files"] = [str(file) for file in schema_files]
         return config
 
     def __repr__(self):

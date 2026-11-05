@@ -83,10 +83,7 @@ def minimal_parsed_config(minimal_raw_config):
 
 @pytest.fixture
 def parsed_config_with_task(raw_config_with_task):
-    return ParsedConfig(
-        raw_config_with_task,
-        json_schema=get_main_config_json_schema(),
-    )
+    return ParsedConfig(raw_config_with_task)
 
 
 @pytest.fixture
@@ -379,10 +376,7 @@ class TestGeneralBehaviour:
             minimal_parsed_config["foo"] = "bar"
 
     def test_config_get_value(self, raw_config_with_non_recognised_options):
-        config = ParsedConfig(
-            raw_config_with_non_recognised_options,
-            json_schema=get_main_config_json_schema(),
-        )
+        config = ParsedConfig(raw_config_with_non_recognised_options)
         assert config["general.times.cycle_length"] == "PT3H"
 
         non_existing_key = str(uuid.uuid4())
@@ -395,15 +389,11 @@ class TestGeneralBehaviour:
     def test_config_can_be_printed(self, raw_config_with_non_recognised_options):
         config = ParsedConfig(
             raw_config_with_non_recognised_options,
-            json_schema=get_main_config_json_schema(),
         )
         _ = str(config)
 
     def test_config_section_can_be_printed(self, raw_config_with_non_recognised_options):
-        config = ParsedConfig(
-            raw_config_with_non_recognised_options,
-            json_schema=get_main_config_json_schema(),
-        )
+        config = ParsedConfig(raw_config_with_non_recognised_options)
         section_dumps = config.dumps(section="general")
         expected_section_dumps = BasicConfig(general=config["general"]).dumps()
         assert section_dumps == expected_section_dumps
@@ -417,7 +407,6 @@ class TestGeneralBehaviour:
         toml_dumps = minimal_parsed_config.dumps(style="toml")
         reloaded_parsed_config = ParsedConfig(
             tomlkit.loads(toml_dumps),
-            json_schema=get_main_config_json_schema(),
         )
         new_toml_dumps = reloaded_parsed_config.dumps(style="toml")
         assert new_toml_dumps == toml_dumps
@@ -572,10 +561,7 @@ class TestValidators:
             ConfigFileValidationError,
             match="must be array",
         ):
-            _ = ParsedConfig(
-                minimal_raw_config,
-                json_schema=get_main_config_json_schema(),
-            )
+            _ = ParsedConfig(minimal_raw_config)
 
     @pytest.mark.parametrize(
         ("start", "end", "dates_list"),
@@ -674,10 +660,7 @@ def raw_config_with_include_section(minimal_raw_config, valid_config_include_sec
 
 @pytest.fixture
 def parsed_config_with_included_sections(raw_config_with_include_section):
-    return ParsedConfig(
-        raw_config_with_include_section,
-        json_schema=get_main_config_json_schema(),
-    )
+    return ParsedConfig(raw_config_with_include_section)
 
 
 class TestConfigIncludeSection:
