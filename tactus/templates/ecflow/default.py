@@ -158,9 +158,8 @@ def default_main(kwargs: dict):
     # This will also handle call to sys.exit(), i.e. Client.__exit__ will still be called.
     with EcflowClient(server, task):
         processor_layout = ProcessorLayout(kwargs)
-        if config.get("domain.nbzonl") is not None:
-            update = derived_variables(config, processor_layout=processor_layout)
-            config = config.copy(update=update)
+        update = derived_variables(config, processor_layout=processor_layout)
+        config = config.copy(update=update)
 
         # TODO Add wrapper to config
         logger.info("Running task {}", task.ecf_name)

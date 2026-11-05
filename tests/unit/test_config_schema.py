@@ -187,4 +187,3 @@ def test_parsed_config_from_file_accepts_single_schema_path(tmp_path, monkeypatc
     config = ParsedConfig.from_file(config_file, json_schema="project.json")
 
     assert config.metadata["schema_files"] == [str(schema_file.resolve())]
-

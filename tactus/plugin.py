@@ -91,7 +91,7 @@ class TactusPluginRegistry:
         return config
 
     def discover_local_plugins(self):
-        """Discover Tactus plugins under the process launch directory.
+        """Discover plugins under the process launch directory.
 
         A plugin namespace directory contains a `tasks` and/or `suites`
         subdirectory. The configured path is the parent of that namespace,

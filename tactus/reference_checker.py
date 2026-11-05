@@ -1161,10 +1161,10 @@ class ReferenceCheckManager:
         Returns:
             A ReferenceCheckManager object or None
         """
-        if "reference_checker" not in config:
+        config_rc = config.get("reference_checker")
+        if config_rc is None:
             return None
 
-        config_rc = config["reference_checker"]
         check = config_rc["check"]
         generate = config_rc["generate"]
         rules_excluded = config_rc.get("rules_excluded", [])

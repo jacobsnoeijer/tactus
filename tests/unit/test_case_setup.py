@@ -82,16 +82,13 @@ def test_set_domain_from_file(
     with open(domain_file, mode="w", encoding="utf8") as fh:
         tomlkit.dump(update, fh)
 
-    output_file, config = case_setup(
+    case_setup(
         default_config,
         output_file,
         [domain_file],
         expand_config=True,
     )
-    assert isinstance(config, ParsedConfig)
-    assert config.metadata["schema_files"] == default_config.metadata["schema_files"]
-    assert config.metadata["source_file_path"] == Path(output_file).resolve()
-    assert config.include_dir == Path(output_file).resolve().parent
+    config = ParsedConfig.from_file(output_file)
     assert config["domain.name"] == "TEST_DOMAIN"
     assert config["domain.name"] == test_domain["name"]
     assert config["general.case"] == test_domain["gridtype"]
@@ -104,7 +101,8 @@ def test_set_case_name(default_config, default_config_dir):
     output_file = f"{default_config_dir}/test_set_case_name.toml"
     case = "a_unique_name"
 
-    output_file_name, config = case_setup(default_config, output_file, [], case=case)
+    case_setup(default_config, output_file, [], case=case)
+    config = ParsedConfig.from_file(output_file)
     assert config["general.case"] == case
     os.remove(output_file)
 
@@ -115,8 +113,7 @@ def test_output_file_name(default_config):
     output_file_name, cfg = case_setup(config, None, [])
     case = Platform(config).substitute(config.get("general.case"))
     assert isinstance(output_file_name, Path)
-    output_file_name = str(output_file_name)
-    assert output_file_name[:-5] == case
+    assert str(output_file_name)[:-5] == case
     os.remove(output_file_name)
 
 

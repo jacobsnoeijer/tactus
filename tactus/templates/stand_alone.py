@@ -56,9 +56,8 @@ def default_main(
 
     task_settings = TaskSettings(config).get_task_settings(task)
     processor_layout = ProcessorLayout(task_settings)
-    if config.get("domain.nbzonl") is not None:
-        update = derived_variables(config, processor_layout=processor_layout)
-        config = config.copy(update=update)
+    update = derived_variables(config, processor_layout=processor_layout)
+    config = config.copy(update=update)
 
     logger.info("Running {}{}", task, member_info)
     get_task(task, config).run()

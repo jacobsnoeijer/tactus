@@ -176,15 +176,34 @@ class ConfigPaths:
 
     @staticmethod
     def path_from_subpath(subpath, last=False) -> Path:
-        """Find a file using only the configured config-data search paths."""
+        """Find a file using only the configured config-data search paths.
+
+        Arguments:
+            subpath (str): Subpath to search for
+            last(boolan): Return last match
+
+        Returns:
+            (Path): Full path to target
+
+        Raises:
+            RuntimeRerror: Various errors
+        """
         return path_from_subpath(subpath, ConfigPaths.CONFIG_DATA_SEARCHPATHS, last=last)
 
     @staticmethod
     def schema_path_from_subpath(subpath, last=False, searchpaths=None) -> Path:
         """Find a file using only the configured schema search paths.
 
-        An explicit ``searchpaths`` list can be supplied for operations that
-        intentionally use a subset of the schema search roots.
+        Arguments:
+            subpath (str): Subpath to search for
+            last(boolan): Return last match
+            searchpaths: optional an explicit list of paths to search
+
+        Returns:
+            (Path): Full path to target
+
+        Raises:
+            RuntimeRerror: Various errors
         """
         if searchpaths is None:
             searchpaths = ConfigPaths.SCHEMAS_SEARCHPATHS
@@ -428,7 +447,7 @@ class ParsedConfig(BasicConfig):
         host=None,
         **kwargs,
     ):
-        """Initialise an instance with an arbitrary number of entries."""
+        """Initialise an instance with an arbitrary number of entries & validate them."""
         self.include_dir = include_dir
         self.json_schema = json_schema
         self.host = host
@@ -438,7 +457,7 @@ class ParsedConfig(BasicConfig):
     def data(self, new):
         """Set the underlying data stored by the instance.
 
-        Skip validation when the schema is empty.
+        Skip the validation if the class is instantiated with an empty schema.
 
         """
         validate_json_schema = len(self.json_schema) > 0

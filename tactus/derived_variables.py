@@ -128,7 +128,11 @@ def derived_variables(config, processor_layout=None):
 
     """
     # Geometry
-    nbzonl = int(config["domain.nbzonl"])
+    nbzonl = config.get("domain.nbzonl")
+    if nbzonl is None:
+        return {}
+
+    nbzonl = int(nbzonl)
     if nbzonl == -1:
         xdx = int(config["domain.xdx"])
         nbzonl = next(x for x in range(2000) if x * xdx >= 20000)
