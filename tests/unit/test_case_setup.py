@@ -114,6 +114,8 @@ def test_output_file_name(default_config):
     config = default_config.copy(update=set_times(default_config))
     output_file_name, cfg = case_setup(config, None, [])
     case = Platform(config).substitute(config.get("general.case"))
+    assert isinstance(output_file_name, Path)
+    output_file_name = str(output_file_name)
     assert output_file_name[:-5] == case
     os.remove(output_file_name)
 

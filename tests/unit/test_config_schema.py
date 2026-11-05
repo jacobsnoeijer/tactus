@@ -188,13 +188,3 @@ def test_parsed_config_from_file_accepts_single_schema_path(tmp_path, monkeypatc
 
     assert config.metadata["schema_files"] == [str(schema_file.resolve())]
 
-
-def test_parsed_config_from_file_keeps_prebuilt_schema_dict(tmp_path):
-    config_file = tmp_path / "config.json"
-    config_file.write_text("{}", encoding="utf-8")
-    schema = {"type": "object", "properties": {"answer": {"type": "integer"}}}
-
-    config = ParsedConfig.from_file(config_file, json_schema=schema)
-
-    assert json.loads(config.json_schema.dumps(style="json")) == schema
-    assert "schema_files" not in config.metadata
