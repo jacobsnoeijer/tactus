@@ -6,7 +6,8 @@ import os
 import shutil
 from typing import List, Optional
 
-from tactus.config_parser import ConfigPaths
+from tactus.config_paths import ConfigPaths
+from tactus.path_utils import resolve_from_searchpaths
 
 from ..logs import logger
 from ..namelist import NamelistGenerator
@@ -38,8 +39,9 @@ class E923(Task):
 
         self.nlgen = NamelistGenerator(self.config, "master")
 
-        input_definition = ConfigPaths.path_from_subpath(
-            self.platform.get_system_value("e923_input_definition")
+        input_definition = resolve_from_searchpaths(
+            self.platform.get_system_value("e923_input_definition"),
+            ConfigPaths.CONFIG_DATA_SEARCHPATHS,
         )
 
         logger.info("Read input data spec from: {}", input_definition)

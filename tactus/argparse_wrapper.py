@@ -15,6 +15,7 @@ from .commands_functions import (
     remove_cases,
     replace_node,
     run_task,
+    show_absolute_path,
     show_config,
     show_config_schema,
     show_host,
@@ -22,7 +23,7 @@ from .commands_functions import (
     show_paths,
     start_suite,
 )
-from .config_parser import ConfigParserDefaults
+from .config_paths import ConfigPathDefaults
 from .namelist import NamelistConverter, get_namelist_type_options
 from .test_runner import run_test
 
@@ -79,7 +80,7 @@ def get_common_parser(config_file_required=False):
             "--config-file",
             "-c",
             metavar="CONFIG_FILE_PATH",
-            default=ConfigParserDefaults.CONFIG_PATH,
+            default=ConfigPathDefaults.DEFAULT_CONFIG_FILE,
             type=Path,
             help=(
                 "Path to the config file. The default is whichever of the "
@@ -88,7 +89,7 @@ def get_common_parser(config_file_required=False):
                 + "(ii) './config.toml'. If both (i) and (ii) are missing, "
                 + "then the default will become "
                 + "'"
-                + f"{ConfigParserDefaults.PACKAGE_CONFIG_PATH}"
+                + f"{ConfigPathDefaults.PACKAGE_CONFIG_FILE}"
                 + "'"
             ),
         )
@@ -394,6 +395,38 @@ def get_args_parser(program_name=GeneralConstants.PACKAGE_NAME):
         "section", help="The config section (optional)", default="", nargs="?"
     )
     parser_show_config_schema.set_defaults(run_command=show_config_schema)
+
+    # show absolute-path
+    parser_show_absolute_path = show_command_subparsers.add_parser(
+        "absolute-path",
+        help="Print the resolved absolute path to a config or schema file",
+    )
+    absolute_path_source = parser_show_absolute_path.add_mutually_exclusive_group(
+        required=True
+    )
+    absolute_path_source.add_argument(
+        "--config-file",
+        "-c",
+        type=Path,
+        help="Resolve a config file using the same mechanism as --config-file",
+    )
+    absolute_path_source.add_argument(
+        "--schema",
+        nargs="+",
+        action="extend",
+        type=Path,
+        help="Resolve schema file(s) using the same mechanism as --schema",
+    )
+    parser_show_absolute_path.add_argument(
+        "--schema-dir",
+        nargs="+",
+        type=Path,
+        default=None,
+        help="Additional schema search directories",
+    )
+    parser_show_absolute_path.set_defaults(
+        run_command=show_absolute_path, standalone_command=True
+    )
 
     # show host
     parser_show_host = show_command_subparsers.add_parser(

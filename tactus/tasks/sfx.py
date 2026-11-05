@@ -6,11 +6,12 @@ import os
 from pysurfex.cli import pgd, prep
 
 from tactus.boundary_utils import Boundary
-from tactus.config_parser import ConfigPaths
+from tactus.config_paths import ConfigPaths
 from tactus.datetime_utils import as_datetime
 from tactus.logs import logger
 from tactus.namelist import NamelistGenerator
 from tactus.os_utils import tactusmakedirs
+from tactus.path_utils import resolve_from_searchpaths
 from tactus.tasks.base import Task
 from tactus.tasks.batch import BatchJob
 
@@ -49,8 +50,9 @@ class PySurfexBaseTask(Task):
         }
 
         # Binary input data
-        self.pysurfex_input_definition = ConfigPaths.path_from_subpath(
-            self.platform.get_system_value("sfx_input_definition")
+        self.pysurfex_input_definition = resolve_from_searchpaths(
+            self.platform.get_system_value("sfx_input_definition"),
+            ConfigPaths.CONFIG_DATA_SEARCHPATHS,
         )
         self.pysurfex_input_definition = self.pysurfex_input_definition.as_posix()
         # Create PySurfex system paths

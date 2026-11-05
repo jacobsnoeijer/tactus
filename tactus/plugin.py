@@ -6,7 +6,7 @@ from typing import List
 import yaml
 
 import tactus
-from tactus.os_utils import resolve_path_relative_to_package
+from tactus.path_utils import resolve_path
 
 from .logs import logger
 
@@ -53,7 +53,7 @@ class TactusPluginRegistry:
         """Load all registered plugins."""
         plugins = self.config["plugins"]
         for name, path in plugins.items():
-            path_ = resolve_path_relative_to_package(Path(path))
+            path_ = resolve_path(Path(path))
             if name != "tactus":
                 plugin = TactusPlugin(name, path_)
                 self.load_plugin(plugin)

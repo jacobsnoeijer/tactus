@@ -302,64 +302,6 @@ def strip_off_mount_path(path: Union[str, Path]) -> Path:
     return Path(pathlib.os.sep, parent_of_user, *file_parts[index_of_user:])
 
 
-def resolve_path_relative_to_package(path: Path, ignore_errors: bool = False) -> Path:
-    """Resolve path relative to any sys.path entry.
-
-    If the path exists as is, return it. If not, derive a relative path by
-    stripping known sys.path prefixes, then search every sys.path entry for
-    that relative path. Raises an error if more than one candidate is found
-    to avoid silent ambiguity.
-
-    Args:
-        path (Path): Path to resolve.
-        ignore_errors (bool, optional): Option to ignore errors.
-            Defaults to False.
-
-    Returns:
-        Path: Original path (if exists locally), or resolved path relative to
-            a sys.path entry.
-
-    Raises:
-        FileNotFoundError: If it was impossible to determine path relative to package.
-        FileNotFoundError: If file does not exist locally or in the package directory.
-    """
-    path = path.expanduser().resolve()
-    if os.path.exists(path):
-        return path
-
-    # For each sys.path entry that is a prefix of the given path, derive the
-    # relative portion and search all sys.path entries for it.
-    candidates = set()
-    for sys_path_str in sys.path:
-        if not sys_path_str:
-            continue
-        try:
-            rel_path = path.relative_to(sys_path_str)
-        except ValueError:
-            continue
-
-        for search_path_str in sys.path:
-            if not search_path_str:
-                continue
-            candidate = Path(search_path_str) / rel_path
-            if candidate.exists():
-                candidates.add(candidate)
-
-    if len(candidates) > 1:
-        raise ValueError(
-            f"Ambiguous path resolution for {path}. "
-            "Multiple candidates found across sys.path entries:\n"
-            + "\n".join(f"  {c}" for c in sorted(candidates))
-        )
-    if len(candidates) == 1:
-        return next(iter(candidates))
-    if not ignore_errors:
-        raise FileNotFoundError(
-            f"File {path} not found locally or relative to any sys.path entry"
-        )
-    return path
-
-
 def list_files_join(folder, f_pattern):
     """Read and return file names based on given pattern.
 

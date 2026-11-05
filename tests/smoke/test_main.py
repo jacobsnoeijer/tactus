@@ -13,7 +13,8 @@ import pytest
 from tactus import GeneralConstants
 from tactus.__main__ import main
 from tactus.argparse_wrapper import get_args_parser
-from tactus.config_parser import ConfigFileValidationError, ConfigParserDefaults
+from tactus.config_parser import ConfigFileValidationError
+from tactus.config_paths import ConfigPathDefaults
 from tactus.host_actions import HostNotFoundError
 from tactus.submission import NoSchedulerSubmission, TaskSettings
 from tactus.toolbox import Platform
@@ -23,26 +24,22 @@ from tactus.toolbox import Platform
 def fixture_config_path(tmp_path_factory: pytest.TempPathFactory):
     main_configs_test_dir = tmp_path_factory.getbasetemp() / "config_files"
     main_configs_test_dir.mkdir(exist_ok=True)
-    shutil.copy(ConfigParserDefaults.PACKAGE_CONFIG_PATH, main_configs_test_dir)
+    shutil.copy(ConfigPathDefaults.PACKAGE_CONFIG_FILE, main_configs_test_dir)
 
     config_includes_test_dir = (
-        main_configs_test_dir / ConfigParserDefaults.PACKAGE_INCLUDE_DIR.name
+        main_configs_test_dir / ConfigPathDefaults.INCLUDE_DIRECTORY.name
     )
     shutil.rmtree(config_includes_test_dir, ignore_errors=True)
-    shutil.copytree(ConfigParserDefaults.PACKAGE_INCLUDE_DIR, config_includes_test_dir)
+    shutil.copytree(ConfigPathDefaults.INCLUDE_DIRECTORY, config_includes_test_dir)
 
-    return main_configs_test_dir / ConfigParserDefaults.PACKAGE_CONFIG_PATH.name
+    return main_configs_test_dir / ConfigPathDefaults.PACKAGE_CONFIG_FILE.name
 
 
 @pytest.fixture(scope="module")
 def _module_mockers(module_mocker, config_path, tmp_path_factory: pytest.TempPathFactory):
-    # Patching ConfigParserDefaults.CONFIG_PATH so tests use the generated config
+    # Patching ConfigPathDefaults.DEFAULT_CONFIG_FILE so tests use the generated config
     module_mocker.patch(
-        "tactus.config_parser.ConfigParserDefaults.__class__.__setattr__",
-        new=type.__setattr__,
-    )
-    module_mocker.patch(
-        "tactus.config_parser.ConfigParserDefaults.CONFIG_PATH", new=config_path
+        "tactus.config_paths.ConfigPathDefaults.DEFAULT_CONFIG_FILE", new=config_path
     )
 
     original_no_scheduler_submission_submit_method = NoSchedulerSubmission.submit
@@ -117,7 +114,7 @@ class TestMainShowCommands:
                 "show",
                 "config",
                 "--config-file",
-                ConfigParserDefaults.PACKAGE_CONFIG_PATH.as_posix(),
+                ConfigPathDefaults.PACKAGE_CONFIG_FILE.as_posix(),
                 "-e",
             ])
 
@@ -175,7 +172,7 @@ def test_start_suite_command():
             "start",
             "suite",
             "--config-file",
-            ConfigParserDefaults.PACKAGE_CONFIG_PATH.as_posix(),
+            ConfigPathDefaults.PACKAGE_CONFIG_FILE.as_posix(),
         ])
     del os.environ["TACTUS_HOST"]
 
@@ -196,7 +193,7 @@ def test_case_command(tmp_path):
         main([
             "case",
             "--config-file",
-            ConfigParserDefaults.PACKAGE_CONFIG_PATH.as_posix(),
+            ConfigPathDefaults.PACKAGE_CONFIG_FILE.as_posix(),
             "--output",
             output_file,
             "--case-name",

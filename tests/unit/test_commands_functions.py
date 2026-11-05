@@ -13,11 +13,18 @@ from tactus.commands_functions import (
     namelist_convert,
     namelist_format,
     namelist_integrate,
+    show_absolute_path,
     show_namelist,
     start_suite,
 )
 from tactus.config_parser import BasicConfig
-from tactus.os_utils import resolve_path_relative_to_package
+from tactus.config_paths import ConfigPaths
+from tactus.path_utils import resolve_path
+
+
+def _resolve_path(path):
+    """Resolve a test fixture path using the shared filesystem resolver."""
+    return resolve_path(path)
 
 
 @pytest.fixture
@@ -38,11 +45,9 @@ def nlint_arg(tmp_directory):
     arg = ArgumentParser()
     arg.tactus_home = None
     arg.namelist = [
-        resolve_path_relative_to_package(
-            Path("tactus/data/namelists/unit_testing/nl_master_integrate")
-        )
+        _resolve_path(Path("tactus/data/namelists/unit_testing/nl_master_integrate"))
     ]
-    arg.yaml = resolve_path_relative_to_package(
+    arg.yaml = _resolve_path(
         Path("tactus/data/namelists/unit_testing/nl_master_base.yml")
     )
     arg.tag = "nl_master_base"
@@ -111,14 +116,14 @@ def test_namelist_integrate(nlint_arg, default_config):
 @pytest.fixture
 def nlconyml_arg(tmp_directory):
     arg = ArgumentParser()
-    arg.namelist = resolve_path_relative_to_package(
+    arg.namelist = _resolve_path(
         Path("tactus/data/namelists/unit_testing/nl_master_base.yml")
     )
     arg.output = f"{tmp_directory}/nl_master_base.49t2.yml"
     arg.from_cycle = "CY48t2"
     arg.to_cycle = "CY49t2"
     arg.format = "yaml"
-    arg.output_reference = resolve_path_relative_to_package(
+    arg.output_reference = _resolve_path(
         Path("tactus/data/namelists/unit_testing/reference/nl_master_base.49t2.yml")
     )
     return arg
@@ -138,15 +143,13 @@ def test_namelist_convert_yml(nlconyml_arg, default_config):
 def nlconftn_arg(tmp_directory):
     arg = ArgumentParser()
     arg.namelist = str(
-        resolve_path_relative_to_package(
-            Path("tactus/data/namelists/unit_testing/nl_master_base")
-        )
+        _resolve_path(Path("tactus/data/namelists/unit_testing/nl_master_base"))
     )
     arg.output = f"{tmp_directory}/nl_master_base.49t2"
     arg.from_cycle = "CY48t2"
     arg.to_cycle = "CY49t2"
     arg.format = "ftn"
-    arg.output_reference = resolve_path_relative_to_package(
+    arg.output_reference = _resolve_path(
         Path("tactus/data/namelists/unit_testing/reference/nl_master_base.49t2")
     )
     return arg
@@ -164,12 +167,12 @@ def test_namelist_convert_ftn(nlconftn_arg, default_config):
 @pytest.fixture
 def nlformatyml_arg(tmp_directory):
     arg = ArgumentParser()
-    arg.namelist = resolve_path_relative_to_package(
+    arg.namelist = _resolve_path(
         Path("tactus/data/namelists/unit_testing/nl_master_base.yml")
     )
     arg.output = f"{tmp_directory}/nl_master_base.format.yml"
     arg.format = "yaml"
-    arg.output_reference = resolve_path_relative_to_package(
+    arg.output_reference = _resolve_path(
         Path("tactus/data/namelists/unit_testing/reference/nl_master_base.format.yml")
     )
     return arg
@@ -189,13 +192,11 @@ def test_namelist_format_yml(nlformatyml_arg, default_config):
 def nlformatftn_arg(tmp_directory):
     arg = ArgumentParser()
     arg.namelist = str(
-        resolve_path_relative_to_package(
-            Path("tactus/data/namelists/unit_testing/nl_master_base")
-        )
+        _resolve_path(Path("tactus/data/namelists/unit_testing/nl_master_base"))
     )
     arg.output = f"{tmp_directory}/nl_master_base.format"
     arg.format = "ftn"
-    arg.output_reference = resolve_path_relative_to_package(
+    arg.output_reference = _resolve_path(
         Path("tactus/data/namelists/unit_testing/reference/nl_master_base.format")
     )
     return arg
@@ -244,6 +245,60 @@ class TestStartSuiteValidatesEps:
 
         with pytest.raises(AttributeError):
             start_suite(args=None, config=config)
+
+
+def test_show_absolute_path_for_config_file(tmp_path, capsys):
+    from tactus.argparse_wrapper import get_args_parser
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("[general]\ncase = 'demo'\n", encoding="utf-8")
+    args = get_args_parser().parse_args([
+        "show",
+        "absolute-path",
+        "--config-file",
+        str(config_file),
+    ])
+
+    show_absolute_path(args)
+
+    assert capsys.readouterr().out == f"{config_file.resolve()}\n"
+
+
+def test_show_absolute_path_for_schema_uses_schema_searchpaths(
+    tmp_path, monkeypatch, capsys
+):
+    from tactus.argparse_wrapper import get_args_parser
+
+    schema_dir = tmp_path / "schemas"
+    nested_schema = schema_dir / "project" / "custom.json"
+    nested_schema.parent.mkdir(parents=True)
+    nested_schema.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(ConfigPaths, "SCHEMAS_SEARCHPATHS", [])
+    args = get_args_parser().parse_args([
+        "show",
+        "absolute-path",
+        "--schema",
+        "project/custom.json",
+        "--schema-dir",
+        str(schema_dir),
+    ])
+
+    show_absolute_path(args)
+
+    assert capsys.readouterr().out == f"{nested_schema.resolve()}\n"
+
+
+def test_show_absolute_path_reports_missing_file():
+    from tactus.argparse_wrapper import get_args_parser
+
+    args = get_args_parser().parse_args([
+        "show",
+        "absolute-path",
+        "--config-file",
+        "does-not-exist.toml",
+    ])
+    with pytest.raises(SystemExit, match="Could not resolve config file"):
+        show_absolute_path(args)
 
 
 if __name__ == "__main__":

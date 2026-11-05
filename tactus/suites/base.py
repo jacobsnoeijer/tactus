@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 from typing import List, Optional, Union
 
-from ..config_parser import ConfigPaths
+from ..config_paths import ConfigPaths
 from ..config_schema import get_config_schema_paths
 from ..datetime_utils import as_datetime
 from ..logs import LogDefaults, logger

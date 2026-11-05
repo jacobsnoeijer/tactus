@@ -9,7 +9,8 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from tactus.config_parser import ConfigPaths, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_paths import ConfigPaths
 from tactus.config_schema import get_config_schema_paths
 from tactus.derived_variables import derived_variables
 from tactus.logs import logger

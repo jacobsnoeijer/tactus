@@ -19,17 +19,17 @@ from tactus.aux_types import BaseMapping, recursive_freeze
 from tactus.config_parser import (
     BasicConfig,
     ConfigFileValidationError,
-    ConfigParserDefaults,
-    ConfigPaths,
     ConflictingValidationSchemasError,
     JsonSchema,
     ParsedConfig,
     _get_all_json_schemas,
 )
-from tactus.config_schema import ConfigSchemaDefaults, get_main_config_json_schema
+from tactus.config_paths import ConfigPathDefaults, ConfigPaths
+from tactus.config_schema import get_main_config_json_schema
 from tactus.datetime_utils import DatetimeConstants, as_datetime
 from tactus.derived_variables import set_times
 from tactus.general_utils import recursive_unfreeze
+from tactus.path_utils import resolve_from_searchpaths
 
 
 @pytest.fixture
@@ -137,7 +137,7 @@ def config_path(minimal_raw_config, tmp_test_data_dir):
 @pytest.fixture
 def package_main_config_without_validation():
     return ParsedConfig.from_file(
-        ConfigParserDefaults.PACKAGE_CONFIG_PATH, json_schema={}, host="atos_bologna"
+        ConfigPathDefaults.PACKAGE_CONFIG_FILE, json_schema={}, host="atos_bologna"
     )
 
 
@@ -638,7 +638,7 @@ class TestPossibilityOfISO8601ComplianceEnforcement:
 
 @pytest.fixture
 def valid_config_include_section():
-    files_under_include_dir = list(ConfigParserDefaults.PACKAGE_INCLUDE_DIR.glob("*"))
+    files_under_include_dir = list(ConfigPathDefaults.INCLUDE_DIRECTORY.glob("*"))
 
     inc_files = [fpath.as_posix() for fpath in files_under_include_dir if fpath.is_file()]
     include_section = {}
@@ -687,7 +687,7 @@ class TestConfigIncludeSection:
         raw_config["include"].update({"foo_section": "include/macros.toml"})
 
         with open(
-            ConfigSchemaDefaults.SCHEMAS_DIRECTORY / "default_section_schema.json", "r"
+            ConfigPathDefaults.SCHEMAS_DIRECTORY / "default_section_schema.json", "r"
         ) as schema_file:
             schema = json.load(schema_file)
 
@@ -702,7 +702,7 @@ class TestConfigIncludeSection:
 
 class TestConfigPaths:
     def test_show_paths(self):
-        ConfigPaths.print(ConfigParserDefaults.PACKAGE_CONFIG_PATH, "atos_bologna")
+        ConfigPaths.print(ConfigPathDefaults.PACKAGE_CONFIG_FILE, "atos_bologna")
 
     def test_match_new_path(self, tmp_test_data_dir):
         test_path1 = tmp_test_data_dir / "test" / "config_files"
@@ -710,14 +710,16 @@ class TestConfigPaths:
 
         ConfigPaths.CONFIG_DATA_SEARCHPATHS = [
             tmp_test_data_dir / "test",
-            ConfigParserDefaults.DATA_DIRECTORY,
+            ConfigPathDefaults.DATA_DIRECTORY,
         ]
 
-        path = ConfigPaths.path_from_subpath("config_files")
+        path = resolve_from_searchpaths(
+            "config_files", ConfigPaths.CONFIG_DATA_SEARCHPATHS
+        )
         assert path == test_path1
 
-        path = ConfigPaths.path_from_subpath("input")
-        assert path == ConfigParserDefaults.DATA_DIRECTORY / "input"
+        path = resolve_from_searchpaths("input", ConfigPaths.CONFIG_DATA_SEARCHPATHS)
+        assert path == ConfigPathDefaults.DATA_DIRECTORY / "input"
 
     def test_multiple_paths(self, tmp_test_data_dir):
         test_path1 = tmp_test_data_dir / "test" / "config_files"
@@ -728,10 +730,12 @@ class TestConfigPaths:
         ConfigPaths.CONFIG_DATA_SEARCHPATHS = [
             tmp_test_data_dir / "test",
             tmp_test_data_dir / "test" / "test",
-            ConfigParserDefaults.DATA_DIRECTORY,
+            ConfigPathDefaults.DATA_DIRECTORY,
         ]
 
-        path = ConfigPaths.path_from_subpath("config_files")
+        path = resolve_from_searchpaths(
+            "config_files", ConfigPaths.CONFIG_DATA_SEARCHPATHS
+        )
         assert path == test_path1
 
 
@@ -824,7 +828,7 @@ class TestSchemasSearchPaths:
         assert isinstance(ConfigPaths.SCHEMAS_SEARCHPATHS, list)
 
     def test_tactus_schemas_directory_in_searchpaths(self):
-        assert ConfigSchemaDefaults.SCHEMAS_DIRECTORY in ConfigPaths.SCHEMAS_SEARCHPATHS
+        assert ConfigPathDefaults.SCHEMAS_DIRECTORY in ConfigPaths.SCHEMAS_SEARCHPATHS
 
     def test_schemas_dir_can_be_prepended_to_searchpaths(self, plugin_schemas_dir):
         original_length = len(ConfigPaths.SCHEMAS_SEARCHPATHS)
@@ -918,6 +922,6 @@ class TestSchemasSearchPaths:
         result_config, _ = _expand_config_include_section(
             raw_config=dict(minimal_raw_config),
             json_schema={},
-            schemas_path=ConfigSchemaDefaults.SCHEMAS_DIRECTORY,
+            schemas_path=ConfigPathDefaults.SCHEMAS_DIRECTORY,
         )
         assert result_config is not None

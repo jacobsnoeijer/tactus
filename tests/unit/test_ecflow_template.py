@@ -7,7 +7,8 @@ from unittest.mock import patch
 import pytest
 
 from tactus import GeneralConstants
-from tactus.config_parser import BasicConfig, ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import BasicConfig, ParsedConfig
+from tactus.config_paths import ConfigPathDefaults
 from tactus.host_actions import TactusHost
 from tactus.logs import logger
 from tactus.scheduler import EcflowServer
@@ -63,7 +64,7 @@ class TestScheduler:
         }
 
         config = BasicConfig.from_file(
-            ConfigParserDefaults.CONFIG_DIRECTORY / "config.toml"
+            ConfigPathDefaults.CONFIG_DIRECTORY / "config.toml"
         )
         tactus_host = TactusHost().detect_tactus_host()
         task_config = ParsedConfig(config, host=tactus_host)

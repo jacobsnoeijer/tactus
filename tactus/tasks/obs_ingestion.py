@@ -8,12 +8,13 @@ from collections.abc import Mapping
 
 import pyproj
 
-from ..config_parser import ConfigPaths
+from ..config_paths import ConfigPaths
 from ..datetime_utils import as_datetime, split_date, td2min
 from ..logs import logger
 from ..namelist import NamelistGenerator
 from ..obs_utils import Observations, odb_io_env
 from ..os_utils import tactusmakedirs
+from ..path_utils import resolve_from_searchpaths
 from .base import Task
 from .batch import BatchJob
 
@@ -66,8 +67,9 @@ class OdbIngestionTask(Task):
         self.nlgen.generate_namelist(self._NLGEN_KEY, "NAMELIST")
 
         # Fetch static input data
-        input_definition = ConfigPaths.path_from_subpath(
-            self.platform.substitute("@CYCLE@/obs_process.json")
+        input_definition = resolve_from_searchpaths(
+            self.platform.substitute("@CYCLE@/obs_process.json"),
+            ConfigPaths.CONFIG_DATA_SEARCHPATHS,
         )
         logger.info("Read data spec from: {}", input_definition)
         self.platform.add_macro({"ODBCONVERTER": self._NLGEN_KEY})

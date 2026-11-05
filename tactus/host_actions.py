@@ -9,9 +9,11 @@ from dataclasses import dataclass
 
 import yaml
 
-from .config_parser import ConfigPaths, GeneralConstants
+from . import GeneralConstants
+from .config_paths import ConfigPaths
 from .logs import logger
 from .os_utils import ping
+from .path_utils import resolve_from_searchpaths
 
 
 def _as_list(patterns):
@@ -72,7 +74,9 @@ class TactusHost:
         source = "the given known_hosts"
         if known_hosts is None:
             if known_hosts_file is None:
-                known_hosts_file = ConfigPaths.path_from_subpath("known_hosts.yml")
+                known_hosts_file = resolve_from_searchpaths(
+                    "known_hosts.yml", ConfigPaths.CONFIG_DATA_SEARCHPATHS
+                )
             source = known_hosts_file
             with open(known_hosts_file, "rb") as infile:
                 known_hosts = yaml.safe_load(infile)

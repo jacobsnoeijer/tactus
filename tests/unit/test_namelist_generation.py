@@ -178,20 +178,18 @@ class TestResolveNamelistPath:
     """Tests for _resolve_namelist_path."""
 
     def test_returns_config_path_when_found(self, tmp_path):
-        """ConfigPaths.path_from_subpath succeeds — its result is returned directly."""
+        """resolve_from_searchpaths succeeds — its result is returned directly."""
         expected = tmp_path / "namelists" / "master.yml"
         expected.parent.mkdir(parents=True)
         expected.touch()
 
-        with patch(
-            "tactus.namelist.ConfigPaths.path_from_subpath", return_value=expected
-        ):
+        with patch("tactus.namelist.resolve_from_searchpaths", return_value=expected):
             result = _resolve_namelist_path("master.yml")
 
         assert result == expected
 
     def test_raises_file_not_found_when_config_raises(self, tmp_path):
-        """RuntimeError from ConfigPaths is turned into a FileNotFoundError.
+        """RuntimeError from recursive lookup is turned into a FileNotFoundError.
 
         The fallback lookup (for ``assemble_master.yml``) is only used to build
         a helpful diagnostic message listing available assemble files; it does
@@ -203,7 +201,7 @@ class TestResolveNamelistPath:
 
         with (
             patch(
-                "tactus.namelist.ConfigPaths.path_from_subpath",
+                "tactus.namelist.resolve_from_searchpaths",
                 side_effect=[RuntimeError("not found"), search_path],
             ),
             pytest.raises(FileNotFoundError),
@@ -215,9 +213,7 @@ class TestResolveNamelistPath:
         expected = tmp_path / "x.yml"
         expected.touch()
 
-        with patch(
-            "tactus.namelist.ConfigPaths.path_from_subpath", return_value=expected
-        ):
+        with patch("tactus.namelist.resolve_from_searchpaths", return_value=expected):
             result = _resolve_namelist_path(Path("x.yml"))
 
         assert result == expected
@@ -226,7 +222,7 @@ class TestResolveNamelistPath:
         """RuntimeError from the diagnostic assemble_master.yml lookup is not swallowed."""
         with (
             patch(
-                "tactus.namelist.ConfigPaths.path_from_subpath",
+                "tactus.namelist.resolve_from_searchpaths",
                 side_effect=RuntimeError("not found"),
             ),
             pytest.raises(RuntimeError),

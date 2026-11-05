@@ -6,7 +6,7 @@ import os
 import shutil
 import socket
 
-from ..config_parser import ConfigParserDefaults
+from ..config_paths import ConfigPathDefaults
 from ..logs import logger
 from ..os_utils import tactusmakedirs
 from ..reference_checker import ReferenceCheckManager
@@ -101,7 +101,7 @@ class Task(object):
         )
         # Path to local tables
         tactus_eccodes_definition_path = str(
-            ConfigParserDefaults.DATA_DIRECTORY / "eccodes/definitions"
+            ConfigPathDefaults.DATA_DIRECTORY / "eccodes/definitions"
         )
         tactus_eccodes_definition_path = ":".join([
             tactus_eccodes_definition_path,

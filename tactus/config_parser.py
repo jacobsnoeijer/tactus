@@ -4,7 +4,6 @@
 import contextlib
 import copy
 import json
-import os
 import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -25,189 +24,15 @@ from json_schema_for_humans.generate import (
 )
 from toml_formatter.formatter import FormattedToml
 
-from . import GeneralConstants
-from .aux_types import BaseMapping, QuasiConstant
-from .config_schema import ConfigSchemaDefaults, assemble_json_schema
+from .aux_types import BaseMapping
+from .config_paths import ConfigPathDefaults, ConfigPaths
+from .config_schema import assemble_json_schema
 from .datetime_utils import DatetimeConstants
 from .formatters import duration_format_validator, duration_slice_format_validator
 from .general_utils import recursive_unfreeze
 from .logs import logger
-from .os_utils import resolve_path_relative_to_package
-from .path_utils import path_from_subpath
+from .path_utils import resolve_from_searchpaths
 from .toolbox import Platform
-
-
-class ConfigParserDefaults(QuasiConstant):
-    """Defaults related to the parsing of config files."""
-
-    DATA_DIRECTORY = GeneralConstants.PACKAGE_DIRECTORY / "data"
-    CONFIG_DIRECTORY = DATA_DIRECTORY / "config_files"
-    PACKAGE_INCLUDE_DIR = CONFIG_DIRECTORY / "include"
-
-    PACKAGE_CONFIG_PATH = (CONFIG_DIRECTORY / "config.toml").resolve(strict=True)
-    # Define the default path to the config file
-    try:
-        CONFIG_PATH = Path(os.getenv("TACTUS_CONFIG_PATH", "config.toml"))
-        CONFIG_PATH = CONFIG_PATH.resolve(strict=True)
-    except FileNotFoundError:
-        CONFIG_PATH = PACKAGE_CONFIG_PATH
-
-
-def _get_searchpaths(env_var, default_path):
-    """Get an ordered search path from an environment variable and default."""
-    env_paths = os.getenv(env_var)
-    searchpaths = env_paths.split(os.pathsep) if env_paths else []
-    erroneous_paths = [path for path in searchpaths if not os.path.isabs(path)]
-    if erroneous_paths:
-        raise RuntimeError(f"{env_var} is not absolute: {erroneous_paths}")
-    searchpaths.append(default_path)
-    return searchpaths
-
-
-class ConfigPaths:
-    """Maintain independent search paths for config data and schemas."""
-
-    CONFIG_DATA_SEARCHPATHS = _get_searchpaths(
-        "TACTUS_CONFIG_DATA_DIR", ConfigParserDefaults.DATA_DIRECTORY
-    )
-    SCHEMAS_SEARCHPATHS = _get_searchpaths(
-        "TACTUS_SCHEMAS_DIR", ConfigSchemaDefaults.SCHEMAS_DIRECTORY
-    )
-
-    @staticmethod
-    def _prepend_search_paths(searchpaths, paths):
-        """Prepend directories, preserving order and avoiding duplicates."""
-        if isinstance(paths, (str, Path)):
-            paths = [paths]
-
-        existing_paths = {Path(path).resolve() for path in searchpaths}
-        new_paths = []
-        for path in paths:
-            resolved_path = Path(path).resolve()
-            if resolved_path not in existing_paths:
-                new_paths.append(str(resolved_path))
-                existing_paths.add(resolved_path)
-        searchpaths[:0] = new_paths
-
-    @classmethod
-    def add_config_data_dirs(cls, paths):
-        """Add directories to the config-data search path."""
-        cls._prepend_search_paths(cls.CONFIG_DATA_SEARCHPATHS, paths)
-
-    @classmethod
-    def add_schema_dirs(cls, paths):
-        """Add directories to the schema search path."""
-        cls._prepend_search_paths(cls.SCHEMAS_SEARCHPATHS, paths)
-
-    @staticmethod
-    def print(config_file=None, host=None):
-        """Prints the available config directories.
-
-        Displays the main config search paths as defined by list_paths
-        in addition to the actual search paths in the config file used.
-
-        """
-
-        def path_info(list_paths, dirmap=tuple({})):
-            """Populates the a list of search paths with found directories.
-
-            Args:
-                list_paths (list): directories to search for
-                dirmap (dict): Mapping between display name and actual path
-
-            Returns:
-                mapping (dict): Dict of search result
-
-            Raises:
-                RuntimeError: In case of multiple conflicting paths detected
-            """
-            mapping = {}
-            for dir_ in list_paths:
-                rdir = dirmap.get(dir_, dir_)
-                mapping[dir_] = []
-                pattern = f"**/{rdir}"
-
-                for searchpath in ConfigPaths.CONFIG_DATA_SEARCHPATHS:
-                    res = list(Path(searchpath).rglob(pattern))
-                    if len(res) == 1:
-                        mapping[dir_].append(str(res[0]))
-                    if len(res) > 1:
-                        logger.error("Multiple matches found for subpath: {}", searchpath)
-                        logger.error("Results: {}", res)
-                        raise RuntimeError
-
-            return mapping
-
-        dirmap = {}
-        list_paths = [
-            "config_files",
-            "namelist_generation_input",
-            "input",
-        ]
-        list_config_paths = []
-        raw_config = BasicConfig.from_file(config_file)
-        for _key, _value in raw_config.get("include", {}).items():
-            key = f"config_file_{_key}_section"
-            value = _value.replace("@HOST@", host) if host is not None else _value
-            dirmap[key] = value
-            if key not in list_paths:
-                list_config_paths.append(key)
-
-        path_info_main = path_info(list_paths, dirmap)
-        path_info_config = path_info(list_config_paths, dirmap)
-
-        logger.info("tactus paths for host={}", host)
-        logger.info(" Package directory: {}", GeneralConstants.PACKAGE_DIRECTORY)
-        logger.info(
-            " Config data searchpaths: {}",
-            [str(x) for x in ConfigPaths.CONFIG_DATA_SEARCHPATHS],
-        )
-        logger.info(
-            " Schema searchpaths: {}",
-            [str(x) for x in ConfigPaths.SCHEMAS_SEARCHPATHS],
-        )
-        logger.info(
-            " Data paths in search order: {}", json.dumps(path_info_main, indent=4)
-        )
-        logger.info(
-            " Config file include paths in search order: {}",
-            json.dumps(path_info_config, indent=4),
-        )
-
-    @staticmethod
-    def path_from_subpath(subpath, last=False) -> Path:
-        """Find a file using only the configured config-data search paths.
-
-        Arguments:
-            subpath (str): Subpath to search for
-            last(boolan): Return last match
-
-        Returns:
-            (Path): Full path to target
-
-        Raises:
-            RuntimeRerror: Various errors
-        """
-        return path_from_subpath(subpath, ConfigPaths.CONFIG_DATA_SEARCHPATHS, last=last)
-
-    @staticmethod
-    def schema_path_from_subpath(subpath, last=False, searchpaths=None) -> Path:
-        """Find a file using only the configured schema search paths.
-
-        Arguments:
-            subpath (str): Subpath to search for
-            last(boolan): Return last match
-            searchpaths: optional an explicit list of paths to search
-
-        Returns:
-            (Path): Full path to target
-
-        Raises:
-            RuntimeRerror: Various errors
-        """
-        if searchpaths is None:
-            searchpaths = ConfigPaths.SCHEMAS_SEARCHPATHS
-        return path_from_subpath(subpath, searchpaths, last=last)
 
 
 class ConfigFileValidationError(Exception):
@@ -237,8 +62,13 @@ class BasicConfig(BaseMapping):
         Returns:
             cls: Configs retrieved from the specified path.
         """
-        path = Path(path).resolve()
+        resolved_path = ConfigPaths.resolve_config_file(path)
+        return cls._from_resolved_file(resolved_path, **kwargs)
 
+    @classmethod
+    def _from_resolved_file(cls, path, **kwargs):
+        """Build a config from a path already selected by ConfigPaths."""
+        path = Path(path)
         configs = _read_raw_config_file(path)
         return cls(configs, _metadata={"source_file_path": path}, **kwargs)
 
@@ -443,7 +273,7 @@ class ParsedConfig(BasicConfig):
         self,
         *args,
         json_schema=None,
-        include_dir=ConfigParserDefaults.CONFIG_DIRECTORY,
+        include_dir=ConfigPathDefaults.CONFIG_DIRECTORY,
         host=None,
         **kwargs,
     ):
@@ -535,13 +365,16 @@ class ParsedConfig(BasicConfig):
             treated as an already assembled schema; strings and paths select
             schema files to resolve and merge.
         """
+        resolved_config_path = ConfigPaths.resolve_config_file(path)
         if include_dir is None:
-            include_dir = Path(path).parent
+            include_dir = resolved_config_path.parent
 
         assembled_schema, schema_files = assemble_json_schema(json_schema)
         kwargs["json_schema"] = assembled_schema
 
-        config = super().from_file(path=path, include_dir=include_dir, **kwargs)
+        config = super()._from_resolved_file(
+            resolved_config_path, include_dir=include_dir, **kwargs
+        )
         if schema_files is not None:
             config.metadata["schema_files"] = [str(file) for file in schema_files]
         return config
@@ -599,8 +432,7 @@ def _read_raw_config_file(config_path: Path):
     Raises:
         NotImplementedError: If the config file format is not supported.
     """
-    config_path = resolve_path_relative_to_package(config_path)
-
+    config_path = Path(config_path)
     logger.debug("Reading configs from file <{}>", config_path)
 
     with open(config_path, "rb") as config_file:
@@ -660,9 +492,7 @@ def _get_all_json_schemas(json_schema, schemas_paths):
             if basename in exclude:
                 continue
             section_name = basename.replace("_section_schema.json", "")
-            schema_file = ConfigPaths.schema_path_from_subpath(
-                basename, searchpaths=search_paths
-            )
+            schema_file = resolve_from_searchpaths(basename, search_paths)
             updated_schema = {"$ref": f"file:{schema_file}"}
             json_schema["properties"].update({section_name: updated_schema})
 
@@ -672,7 +502,7 @@ def _get_all_json_schemas(json_schema, schemas_paths):
 def _expand_config_include_section(
     raw_config: dict,
     json_schema: JsonSchema,
-    config_include_search_dir=ConfigParserDefaults.CONFIG_DIRECTORY,
+    config_include_search_dir=ConfigPathDefaults.CONFIG_DIRECTORY,
     schemas_path: Optional[List[Path] | Path] = None,
     _parent_sections: Tuple = (),
     host: Optional[str] = None,
@@ -684,7 +514,7 @@ def _expand_config_include_section(
             containing include directives.
         json_schema (JsonSchema): The JSON schema associated with ``raw_config``.
         config_include_search_dir: Directory in which to search for included config
-            files. Defaults to ``ConfigParserDefaults.CONFIG_DIRECTORY``.
+            files. Defaults to ``ConfigPathDefaults.CONFIG_DIRECTORY``.
         schemas_path (Path | list[Path] | None): A single Path, a list of Paths, or
             None.  When None, defaults to ``ConfigPaths.SCHEMAS_SEARCHPATHS``
             (evaluated at call time so that callers can insert extra directories into
@@ -711,7 +541,6 @@ def _expand_config_include_section(
     if schemas_path is None:
         schemas_path = ConfigPaths.SCHEMAS_SEARCHPATHS
     if not isinstance(schemas_path, list):
-        # Accept a single Path/str for backward compatibility
         schemas_path = [schemas_path]
 
     # If the json schema is empty on arrival, keep it empty
@@ -740,7 +569,9 @@ def _expand_config_include_section(
                 )
                 include_path = Path(include_path)
                 if not include_path.is_absolute():
-                    include_path = ConfigPaths.path_from_subpath(include_path)
+                    include_path = resolve_from_searchpaths(
+                        include_path, ConfigPaths.CONFIG_DATA_SEARCHPATHS
+                    )
                 logger.info("Include: {}", include_path)
                 included_config_section = _read_raw_config_file(include_path)
             else:
@@ -756,8 +587,8 @@ def _expand_config_include_section(
                 raise ConflictingValidationSchemasError(msg)
 
             try:
-                schema_file = ConfigPaths.schema_path_from_subpath(
-                    f"{section_name}_section_schema.json", searchpaths=schemas_path
+                schema_file = resolve_from_searchpaths(
+                    f"{section_name}_section_schema.json", schemas_path
                 )
             except RuntimeError:
                 logger.warning(
@@ -766,8 +597,8 @@ def _expand_config_include_section(
                 )
                 # default_section_schema.json lives in the tactus schemas dir
                 # (assumed to be last in list)
-                schema_file = ConfigPaths.schema_path_from_subpath(
-                    "default_section_schema.json", searchpaths=[schemas_path[-1]]
+                schema_file = resolve_from_searchpaths(
+                    "default_section_schema.json", [schemas_path[-1]]
                 )
 
             updated_config, updated_schema = _expand_config_include_section(

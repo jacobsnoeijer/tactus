@@ -8,13 +8,14 @@ import os
 from pysurfex.namelist import InputDataFromNamelist
 from pysurfex.platform_deps import SystemFilePathsFromFile
 
-from ..config_parser import ConfigPaths
+from ..config_paths import ConfigPaths
 from ..datetime_utils import as_datetime, as_timedelta, oi2dt_list
 from ..derived_variables import check_fullpos_namelist
 from ..initial_conditions import InitialConditions
 from ..logs import logger
 from ..namelist import NamelistGenerator
 from ..os_utils import tactusmakedirs
+from ..path_utils import resolve_from_searchpaths
 from .base import Task
 from .batch import BatchJob
 from .iomerge import IOMERGE_FILETYPES
@@ -195,8 +196,9 @@ class Forecast(PySurfexBaseTask):
     def execute(self):
         """Execute forecast."""
         # Fetch forecast model static input data
-        input_definition = ConfigPaths.path_from_subpath(
-            self.platform.get_system_value("forecast_input_definition")
+        input_definition = resolve_from_searchpaths(
+            self.platform.get_system_value("forecast_input_definition"),
+            ConfigPaths.CONFIG_DATA_SEARCHPATHS,
         )
         logger.info("Read static data spec from: {}", input_definition)
         with open(input_definition, "r", encoding="utf-8") as f:
@@ -220,8 +222,9 @@ class Forecast(PySurfexBaseTask):
         settings = self.nlgen_surfex.assemble_namelist("forecast")
         self.nlgen_surfex.write_namelist(settings, "EXSEG1.nam")
 
-        input_definition = ConfigPaths.path_from_subpath(
-            self.platform.get_system_value("sfx_input_definition")
+        input_definition = resolve_from_searchpaths(
+            self.platform.get_system_value("sfx_input_definition"),
+            ConfigPaths.CONFIG_DATA_SEARCHPATHS,
         )
         with open(input_definition, "r", encoding="utf-8") as f:
             input_data = json.load(f)

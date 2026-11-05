@@ -39,7 +39,8 @@ import subprocess
 import tempfile
 from collections.abc import Mapping
 
-from ..config_parser import GeneralConstants
+from tactus import GeneralConstants
+
 from ..datetime_utils import as_datetime, as_timedelta, split_date
 from ..logs import logger
 from ..obs_utils import Observations

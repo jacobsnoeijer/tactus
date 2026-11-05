@@ -15,10 +15,11 @@ import yaml
 from omegaconf import OmegaConf
 from omegaconf.listconfig import ListConfig
 
-from .config_parser import ConfigPaths
+from .config_paths import ConfigPaths
 from .csc_actions import SelectTstep
 from .datetime_utils import as_timedelta, oi2dt_list
 from .logs import logger
+from .path_utils import resolve_from_searchpaths
 from .toolbox import Platform
 
 
@@ -129,9 +130,9 @@ def get_namelist_type_options():
             directory was found).
 
     """
-    master_file = ConfigPaths.path_from_subpath("assemble_master.yml", last=True)
-    if not master_file:
-        return [], None
+    master_file = resolve_from_searchpaths(
+        "assemble_master.yml", ConfigPaths.CONFIG_DATA_SEARCHPATHS, last=True
+    )
     search_dir = master_file.parent
     options = sorted(
         p.name.replace("assemble_", "").replace(".yml", "")
@@ -144,7 +145,7 @@ def _resolve_namelist_path(subpath) -> Path:
     """Resolve a config path, falling back to package-relative lookup."""
     path = Path(subpath)
     try:
-        return ConfigPaths.path_from_subpath(path)
+        return resolve_from_searchpaths(path, ConfigPaths.CONFIG_DATA_SEARCHPATHS)
     except RuntimeError:
         logger.error("File not found: {}", path.name)
         options, search_path = get_namelist_type_options()

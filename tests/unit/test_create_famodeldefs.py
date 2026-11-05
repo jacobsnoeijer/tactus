@@ -3,12 +3,10 @@ from unittest.mock import patch
 
 import yaml
 
-from tactus.config_parser import ConfigParserDefaults
+from tactus.config_paths import ConfigPathDefaults
 from tactus.tasks.prep_run import PrepRun
 
-FA_MODEL_SOURCE_YML = (
-    ConfigParserDefaults.DATA_DIRECTORY / "eccodes" / "FaModelSource.yml"
-)
+FA_MODEL_SOURCE_YML = ConfigPathDefaults.DATA_DIRECTORY / "eccodes" / "FaModelSource.yml"
 
 
 def test_create_famodeldefs_output_format(tmp_path, default_config):

@@ -15,7 +15,8 @@ from pathlib import Path
 import tomli
 
 from . import GeneralConstants
-from .config_parser import BasicConfig, ConfigPaths, ParsedConfig
+from .config_parser import BasicConfig, ParsedConfig
+from .config_paths import ConfigPaths
 from .datetime_utils import evaluate_date
 from .experiment import get_git_info
 from .fullpos import flatten_list

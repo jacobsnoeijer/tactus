@@ -10,12 +10,12 @@ import pytest
 import tomlkit
 import yaml
 
-from tactus.config_parser import ConfigParserDefaults
+from tactus.config_paths import ConfigPathDefaults
 from tactus.derived_variables import set_times
 from tactus.tasks.base import Task
 
 WORKING_DIR = Path.cwd()
-TACTUS_DEFS = ConfigParserDefaults.DATA_DIRECTORY / "eccodes/definitions"
+TACTUS_DEFS = ConfigPathDefaults.DATA_DIRECTORY / "eccodes/definitions"
 
 
 @pytest.fixture(scope="module")
@@ -186,10 +186,10 @@ class TestFaFieldNameDefinitions:
         """Test that all FA variables from fullpos namelists are in faFieldName.def."""
         # Get paths
         namelist_input_dir = (
-            ConfigParserDefaults.DATA_DIRECTORY / "namelist_generation_input"
+            ConfigPathDefaults.DATA_DIRECTORY / "namelist_generation_input"
         )
         fa_field_def_path = (
-            ConfigParserDefaults.DATA_DIRECTORY
+            ConfigPathDefaults.DATA_DIRECTORY
             / "eccodes/definitions/grib2/localConcepts/lfpw/faFieldName.def"
         )
 

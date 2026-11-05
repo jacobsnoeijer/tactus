@@ -3,9 +3,10 @@
 
 import yaml
 
-from .config_parser import ConfigPaths
+from .config_paths import ConfigPaths
 from .general_utils import merge_dicts
 from .logs import logger
+from .path_utils import resolve_from_searchpaths
 
 
 def flatten_list(li):
@@ -89,7 +90,9 @@ class Fullpos:
         s = "selection"
         nldict = {s: {}}
         for fpfile in fpfiles:
-            f = ConfigPaths.path_from_subpath(f"{fpdir}/{fpfile}.yml")
+            f = resolve_from_searchpaths(
+                f"{fpdir}/{fpfile}.yml", ConfigPaths.CONFIG_DATA_SEARCHPATHS
+            )
             logger.info("Read {}", f)
             with open(f, mode="rt", encoding="utf-8") as file:
                 n = yaml.safe_load(file)
@@ -112,7 +115,9 @@ class Fullpos:
         if additions_list is not None:
             # Read the update
             for addition in additions_list:
-                fpfile = ConfigPaths.path_from_subpath(f"{self.fpdir}/{addition}.yml")
+                fpfile = resolve_from_searchpaths(
+                    f"{self.fpdir}/{addition}.yml", ConfigPaths.CONFIG_DATA_SEARCHPATHS
+                )
                 with open(fpfile, mode="rt", encoding="utf-8") as file:
                     nldict = yaml.safe_load(file)
                     file.close()

@@ -5,7 +5,8 @@ from pathlib import Path
 import yaml
 
 from tactus.cleaning import CleanTactus
-from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_paths import ConfigPathDefaults
 from tactus.eps.eps_setup import get_member_config
 from tactus.logs import logger
 from tactus.os_utils import tactusmakedirs
@@ -78,7 +79,7 @@ class PrepRun(Task):
         logger.info(
             "Create faModelName definitions in {}", target_eccodes_definition_path
         )
-        tactus_eccodes_definition_path = ConfigParserDefaults.DATA_DIRECTORY / "eccodes"
+        tactus_eccodes_definition_path = ConfigPathDefaults.DATA_DIRECTORY / "eccodes"
         fa_model_source_file = tactus_eccodes_definition_path / "FaModelSource.yml"
 
         if fa_model_source_file.is_file():

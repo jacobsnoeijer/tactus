@@ -17,7 +17,9 @@ from troika.connections.ssh import SSHConnection
 
 from . import GeneralConstants
 from .cleaning import CleanTactus
-from .config_parser import BasicConfig, ConfigPaths, ParsedConfig
+from .config_parser import BasicConfig, ParsedConfig
+from .config_paths import ConfigPaths
+from .config_schema import get_main_config_schema_paths
 from .derived_variables import check_fullpos_namelist, derived_variables, set_times
 from .eps.eps_setup import EPSConfig, get_member_config
 from .experiment import case_setup
@@ -30,6 +32,7 @@ from .namelist import (
     NamelistGenerator,
     NamelistIntegrator,
 )
+from .path_utils import resolve_from_searchpaths
 from .scheduler import EcflowServer
 from .submission import NoSchedulerSubmission, TaskSettings
 from .suites.discover_suite import get_suite
@@ -129,7 +132,9 @@ def create_exp(args, config):
     """
     known_hosts_file = args.host_file
     if known_hosts_file is None:
-        known_hosts_file = ConfigPaths.path_from_subpath("known_hosts.yml")
+        known_hosts_file = resolve_from_searchpaths(
+            "known_hosts.yml", ConfigPaths.CONFIG_DATA_SEARCHPATHS
+        )
 
     host = TactusHost(known_hosts_file=known_hosts_file).detect_tactus_host()
     output_file = args.output_file
@@ -404,6 +409,31 @@ def show_config(args, config):
         logger.error('Error retrieving config data for config section "{}"', args.section)
     else:
         sys.stdout.write(str(dumps) + "\n")
+
+
+def show_absolute_path(args):
+    """Print the absolute path selected by the normal config/schema loader."""
+    file_type = "config" if args.config_file is not None else "schema"
+    requested = args.config_file if file_type == "config" else args.schema
+
+    try:
+        if args.schema_dir:
+            ConfigPaths.add_schema_dirs(args.schema_dir)
+
+        if file_type == "config":
+            resolved_paths = [ConfigPaths.resolve_config_file(args.config_file)]
+        else:
+            resolved_paths = get_main_config_schema_paths(args.schema)
+
+        for path in resolved_paths:
+            resolved_path = path.resolve(strict=True)
+            if not resolved_path.is_file():
+                raise FileNotFoundError(f"Resolved path is not a file: {resolved_path}")
+            sys.stdout.write(str(resolved_path) + "\n")
+    except (FileNotFoundError, RuntimeError, ValueError) as error:
+        raise SystemExit(
+            f"Could not resolve {file_type} file '{requested}': {error}"
+        ) from error
 
 
 def show_config_schema(args, config):

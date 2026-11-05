@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 import tomlkit
 
-from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_paths import ConfigPathDefaults
 from tactus.config_schema import get_main_config_json_schema
 from tactus.derived_variables import derived_variables, set_times
 from tactus.submission import NoSchedulerSubmission, ProcessorLayout, TaskSettings
@@ -40,7 +41,7 @@ def parsed_config_with_task(raw_config_with_task):
 
 @pytest.fixture
 def _module_mockers(module_mocker):
-    # Patching ConfigParserDefaults.CONFIG_PATH so tests use the generated config
+    # Patching ConfigPathDefaults.DEFAULT_CONFIG_FILE so tests use the generated config
     original_submission_task_settings_parse_job = TaskSettings.parse_job
 
     def new_submission_task_settings_parse_job(self, **kwargs):
@@ -66,9 +67,7 @@ class TestSubmission:
                     "types": {"pytest": {"SCHOST": "localhost", "WRAPPER": ""}},
                 },
                 "troika": {
-                    "config_file": str(
-                        ConfigParserDefaults.CONFIG_DIRECTORY / "troika.yml"
-                    )
+                    "config_file": str(ConfigPathDefaults.CONFIG_DIRECTORY / "troika.yml")
                 },
             }
         )

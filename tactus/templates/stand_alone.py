@@ -3,7 +3,9 @@
 import json
 import os
 
-from tactus.config_parser import ConfigPaths, GeneralConstants, ParsedConfig
+from tactus import GeneralConstants
+from tactus.config_parser import ParsedConfig
+from tactus.config_paths import ConfigPaths
 from tactus.derived_variables import derived_variables, set_times
 from tactus.eps.eps_setup import get_member_config
 from tactus.host_actions import TactusHost

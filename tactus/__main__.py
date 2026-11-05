@@ -8,7 +8,8 @@ import sys
 
 from . import GeneralConstants
 from .argparse_wrapper import get_args_parser
-from .config_parser import ConfigPaths, ParsedConfig
+from .config_parser import ParsedConfig
+from .config_paths import ConfigPaths
 from .host_actions import TactusHost
 from .logs import LoggerHandlers, log_elapsed_time, logger
 

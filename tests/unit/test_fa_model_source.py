@@ -1,11 +1,9 @@
 import yaml
 
-from tactus.config_parser import ConfigParserDefaults
+from tactus.config_paths import ConfigPathDefaults
 from tactus.config_schema import get_main_config_json_schema
 
-FA_MODEL_SOURCE_YML = (
-    ConfigParserDefaults.DATA_DIRECTORY / "eccodes" / "FaModelSource.yml"
-)
+FA_MODEL_SOURCE_YML = ConfigPathDefaults.DATA_DIRECTORY / "eccodes" / "FaModelSource.yml"
 
 
 def get_allowed_cycles_and_cscs():

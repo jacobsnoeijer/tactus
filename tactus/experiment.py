@@ -11,18 +11,15 @@ from typing import List, Optional
 
 import tomlkit
 
-from tactus.config_parser import (
-    BasicConfig,
-    ConfigPaths,
-    ParsedConfig,
-)
+from tactus.config_parser import BasicConfig, ParsedConfig
+from tactus.config_paths import ConfigPaths
 from tactus.datetime_utils import evaluate_date
 from tactus.derived_variables import set_times
 from tactus.eps.eps_setup import EPSConfig, generate_member_settings
 from tactus.general_utils import merge_dicts, recursive_dict_deviation
 from tactus.host_actions import set_tactus_home
 from tactus.logs import logger
-from tactus.os_utils import resolve_path_relative_to_package
+from tactus.path_utils import resolve_from_searchpaths, resolve_path
 from tactus.toolbox import Platform, compute_georef
 
 
@@ -104,9 +101,9 @@ class ExpFromFiles(Exp):
                 continue
             mod = Path(str(_mod).replace("@HOST@", host)) if host is not None else _mod
             try:
-                mod = ConfigPaths.path_from_subpath(mod)
+                mod = resolve_from_searchpaths(mod, ConfigPaths.CONFIG_DATA_SEARCHPATHS)
             except RuntimeError:
-                mod = resolve_path_relative_to_package(mod, ignore_errors=True)
+                mod = resolve_path(mod, ignore_errors=True)
             # First check if mod exists as is
             if os.path.exists(mod):
                 try:
@@ -259,9 +256,11 @@ class EPSExp(Exp):
                         else _mod
                     )
                     try:
-                        mod = ConfigPaths.path_from_subpath(mod)
+                        mod = resolve_from_searchpaths(
+                            mod, ConfigPaths.CONFIG_DATA_SEARCHPATHS
+                        )
                     except RuntimeError:
-                        mod = resolve_path_relative_to_package(mod, ignore_errors=True)
+                        mod = resolve_path(mod, ignore_errors=True)
 
                     # First check if mod exists as is
                     if os.path.exists(mod):

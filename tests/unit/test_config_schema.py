@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 from tactus.argparse_wrapper import get_args_parser
-from tactus.config_parser import ConfigPaths, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_paths import ConfigPaths
 from tactus.config_schema import (
     get_main_config_json_schema,
     get_main_config_schema_paths,
@@ -99,7 +100,7 @@ def test_missing_selected_schema_raises_lookup_error(tmp_path, monkeypatch):
     schema_dir.mkdir()
     monkeypatch.setattr(ConfigPaths, "SCHEMAS_SEARCHPATHS", [schema_dir])
 
-    with pytest.raises(RuntimeError, match="Could not find missing_schema.json"):
+    with pytest.raises(FileNotFoundError, match="missing_schema.json"):
         get_main_config_schema_paths(["missing_schema.json"])
 
 

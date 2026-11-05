@@ -5,10 +5,11 @@ import os
 from typing import Dict
 
 from tactus.boundary_utils import Boundary
-from tactus.config_parser import ConfigPaths
+from tactus.config_paths import ConfigPaths
 from tactus.datetime_utils import as_datetime
 from tactus.logs import logger
 from tactus.namelist import NamelistGenerator
+from tactus.path_utils import resolve_from_searchpaths
 from tactus.tasks.base import Task
 from tactus.tasks.batch import BatchJob
 
@@ -58,8 +59,9 @@ class InterpolateBoundaries(Task):
 
         """
         # Fetch input data
-        input_definition = ConfigPaths.path_from_subpath(
-            self.platform.get_system_value(self.input_definition)
+        input_definition = resolve_from_searchpaths(
+            self.platform.get_system_value(self.input_definition),
+            ConfigPaths.CONFIG_DATA_SEARCHPATHS,
         )
 
         logger.info("Read input data spec from: {}", input_definition)

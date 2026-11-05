@@ -5,7 +5,7 @@ import os
 
 import pytest
 
-from tactus.config_parser import GeneralConstants
+from tactus import GeneralConstants
 from tactus.host_actions import (
     AmbigiousHostError,
     HostNotFoundError,

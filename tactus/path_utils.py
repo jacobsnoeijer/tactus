@@ -1,107 +1,121 @@
-"""Utilities for resolving paths across ordered search directories."""
+"""Generic utilities for resolving paths across ordered search locations."""
 
-from collections.abc import Iterable, Iterator
-from contextlib import contextmanager
-from importlib import resources
+import sys
+from collections.abc import Iterable
 from pathlib import Path
 
 from .logs import logger
 
 
-def path_from_subpath(subpath, searchpaths, last=False) -> Path:
-    """Find a path by subpath in an ordered list of search directories.
+def resolve_path(
+    path: str | Path,
+    *,
+    searchpaths: Iterable[str | Path] = (),
+    ignore_errors: bool = False,
+) -> Path:
+    """Resolve an explicitly supplied path using one shared policy.
 
-    The first search directory containing a match wins. Within that directory,
-    the first match is returned unless ``last`` is true.
+    Resolution is deliberately consistent for config and schema files:
 
-    Args:
-        subpath (str | Path): Relative path or subpath to find.
-        searchpaths (list[str | Path]): Directories to search, in priority order.
-        last (bool): Return the last match within the first matching directory.
+    1. An existing path relative to the current working directory wins.
+    2. Otherwise, relative paths are checked beneath the ordered ``searchpaths``
+       and then beneath ``sys.path`` entries.
+    3. For an absolute path that no longer exists, its suffix beneath any
+       search root is tried beneath every root.
+    4. Multiple distinct matches are rejected rather than silently selecting
+       one.
 
-    Returns:
-        Path: The resolved path.
+    ``searchpaths`` are domain-specific roots (for example, configured schema
+    directories); ``sys.path`` is always included as the common package fallback.
+    """
+    requested_path = Path(path).expanduser()
+    absolute_path = requested_path.resolve()
 
-    Raises:
-        RuntimeError: If the path cannot be found.
+    if absolute_path.exists():
+        return absolute_path
+
+    if isinstance(searchpaths, (str, Path)):
+        searchpaths = [searchpaths]
+
+    # Normalize and de-duplicate the roots while preserving their precedence.
+    roots = []
+    for root in searchpaths:
+        root_resolved = Path(root).expanduser().resolve()
+        if root_resolved not in roots:
+            roots.append(root_resolved)
+
+    for root in sys.path:
+        if not root:
+            continue
+        root_resolved = Path(root).expanduser().resolve()
+        if root_resolved not in roots:
+            # Stale roots still identify a relative suffix from another install.
+            roots.append(root_resolved)
+
+    candidates = set()
+    if requested_path.is_absolute():
+        # For absolute paths, preserve the historical behavior: when the path
+        # belonged to one import root, try the same relative suffix in all roots.
+        relative_paths = set()
+        for root in roots:
+            if absolute_path.is_relative_to(root):
+                relative_paths.add(absolute_path.relative_to(root))
+        for relative_path in relative_paths:
+            for root in roots:
+                candidate = (root / relative_path).resolve()
+                if candidate.exists():
+                    candidates.add(candidate)
+    else:
+        # Relative paths are interpreted beneath each configured/package root,
+        # after the current-working-directory check above.
+        for root in roots:
+            candidate = (root / requested_path).resolve()
+            if candidate.exists():
+                candidates.add(candidate)
+
+    if len(candidates) > 1:
+        raise ValueError(
+            f"Ambiguous path resolution for {absolute_path}. "
+            "Multiple candidates found across search paths:\n"
+            + "\n".join(f"  {candidate}" for candidate in sorted(candidates))
+        )
+    if candidates:
+        return next(iter(candidates))
+
+    if not ignore_errors:
+        raise FileNotFoundError(
+            f"File {absolute_path} not found locally or beneath configured search paths"
+        )
+    return absolute_path
+
+
+def resolve_from_searchpaths(
+    subpath: str | Path,
+    searchpaths: Iterable[str | Path],
+    *,
+    last: bool = False,
+) -> Path:
+    """Resolve a relative subpath recursively beneath ordered search directories.
+
+    Use :func:`resolve_path` for explicit config/schema file arguments. This
+    recursive lookup is intended for Tactus data assets and included sections,
+    where a path may intentionally be named by a subpath or basename.
     """
     subpath = Path(subpath)
     if subpath.is_absolute():
         if subpath.exists():
-            return subpath
+            return subpath.resolve()
         raise RuntimeError(f"Could not find {subpath}")
 
     return_index = -1 if last else 0
     pattern = f"**/{subpath}"
     for searchpath in searchpaths:
-        results = list(Path(searchpath).rglob(pattern))
+        search_path = Path(searchpath)
+        results = list(search_path.rglob(pattern))
         if len(results) > 1 and not last:
             logger.warning("Multiple matches found for subpath: {}", subpath)
             logger.warning("Selecting the first result: {}", results[0])
-
         if results:
-            return results[return_index]
+            return results[return_index].resolve()
 
     raise RuntimeError(f"Could not find {subpath}")
-
-
-@contextmanager
-def resolve_file(
-    file_path: str | Path,
-    *,
-    searchpaths: Iterable[str | Path] | str | Path | None = None,
-    package: str | None = None,
-) -> Iterator[Path]:
-    """Resolve a file from search directories or an optional package resource.
-
-    Search directories are checked in order, using the same recursive lookup
-    behavior as :func:`path_from_subpath`. If no local file is found and
-    ``package`` is provided, the file is looked up relative to that package.
-    Package resources are exposed as paths for the duration of the context.
-
-    Args:
-        file_path (str | Path): Relative path to the file, or an absolute path.
-        searchpaths (Iterable[str | Path] | str | Path | None): Directories to
-            search in priority order. Defaults to the current working directory.
-        package (str | None): Optional package to search after the local paths.
-
-    Yields:
-        Path: The resolved file path.
-
-    Raises:
-        ValueError: If a relative path contains ``..``.
-        FileNotFoundError: If the file cannot be found.
-    """
-    file_path = Path(file_path)
-
-    if file_path.is_absolute():
-        if file_path.is_file():
-            yield file_path.resolve()
-            return
-        raise FileNotFoundError(f"File '{file_path}' not found.")
-
-    if ".." in file_path.parts:
-        raise ValueError("File path cannot contain '..'.")
-
-    if searchpaths is None:
-        searchpaths = [Path.cwd()]
-    elif isinstance(searchpaths, (str, Path)):
-        searchpaths = [searchpaths]
-
-    try:
-        local_path = path_from_subpath(file_path, searchpaths).resolve()
-    except RuntimeError:
-        local_path = None
-
-    if local_path is not None and local_path.is_file():
-        yield local_path
-        return
-
-    if package is not None:
-        resource = resources.files(package).joinpath(*file_path.parts)
-        if resource.is_file():
-            with resources.as_file(resource) as package_path:
-                yield package_path
-            return
-
-    raise FileNotFoundError(f"File '{file_path}' not found.")

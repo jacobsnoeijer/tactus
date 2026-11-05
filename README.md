@@ -110,6 +110,19 @@ Before you can use `tactus` (apart from the `-h` option), you will need a config
  tactus show config
  ```
 
+ To inspect the exact file selected by the same resolution logic as `--config-file` or `--schema`, use `tactus show absolute-path`:
+ ```shell
+ tactus show absolute-path --config-file config.toml
+ tactus show absolute-path --schema minimal_config_schema.json my_schema.json
+ tactus show absolute-path --schema my_schema.json --schema-dir ./schemas
+ ```
+ `--schema` accepts multiple files and preserves their loading order. Config and
+ schema arguments share the same explicit-file resolver: an existing path in the
+ current working directory wins; otherwise configured schema directories (for
+ schemas) and Python package search roots are checked. Ambiguous matches are
+ reported rather than silently selected. Paths below a `--schema-dir` should be
+ written relative to that directory (for example `project/schema.json`). Recursive subpath lookup remains available for included config and section-schema assets.
+
 ### Command line options
 
 After completing the setup, you should be able to run

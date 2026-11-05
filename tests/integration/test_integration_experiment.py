@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 import tomlkit
 
-from tactus.config_parser import ConfigPaths, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_paths import ConfigPaths
 from tactus.experiment import EPSExp
 
 

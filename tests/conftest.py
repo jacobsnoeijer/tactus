@@ -6,7 +6,8 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 
-from tactus.config_parser import ConfigParserDefaults, ParsedConfig
+from tactus.config_parser import ParsedConfig
+from tactus.config_paths import ConfigPathDefaults
 from tactus.host_actions import TactusHost
 
 
@@ -148,7 +149,7 @@ def default_config(tmp_directory):
         tactus_host = "pytest"
 
     config = ParsedConfig.from_file(
-        ConfigParserDefaults.PACKAGE_CONFIG_PATH,
+        ConfigPathDefaults.PACKAGE_CONFIG_FILE,
         host=tactus_host,
     )
     if tactus_host == "pytest":
